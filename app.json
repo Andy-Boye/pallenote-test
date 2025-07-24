@@ -4,7 +4,6 @@
     "slug": "test-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
     "scheme": "testapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
