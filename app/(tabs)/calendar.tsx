@@ -2,8 +2,10 @@
 
 import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { useRouter } from 'expo-router';
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Button, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Calendar } from 'react-native-calendars';
 import DarkGradientBackground from '../../components/DarkGradientBackground';
 
@@ -40,35 +42,121 @@ const formatDate = (dateString: string): string => {
 
 export default function CalendarScreen() {
   const { colors } = useTheme()
+  const router = useRouter();
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState<string>('')
+  const [modalVisible, setModalVisible] = useState(false);
+  const [newEventTitle, setNewEventTitle] = useState("");
+  const [newEventDate, setNewEventDate] = useState<string>("");
+  const [newEventTime, setNewEventTime] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [detailsModalVisible, setDetailsModalVisible] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editEventTitle, setEditEventTitle] = useState("");
+  const [editEventDate, setEditEventDate] = useState<string>("");
+  const [editEventTime, setEditEventTime] = useState<Date | null>(null);
+  const [showEditDatePicker, setShowEditDatePicker] = useState(false);
+  const [showEditTimePicker, setShowEditTimePicker] = useState(false);
+
+  // Delete event handler
+  const handleDeleteEvent = () => {
+    if (!selectedEvent) return;
+    console.log('Events before delete:', events);
+    const updatedEvents = events.filter(
+      e => e.id && e.title && e.date && e.id !== selectedEvent.id
+    );
+    console.log('Events after delete:', updatedEvents);
+    setEvents(updatedEvents);
+    setDetailsModalVisible(false);
+    setSelectedEvent(null);
+  };
+
+  // Edit event handler
+  const handleEditEvent = () => {
+    if (!selectedEvent) return;
+    setEditEventTitle(selectedEvent.title);
+    setEditEventDate(selectedEvent.date.slice(0, 10));
+    setEditEventTime(new Date(selectedEvent.date));
+    setEditModalVisible(true);
+    setDetailsModalVisible(false);
+  };
+
+  // Save edited event
+  const handleSaveEditEvent = () => {
+    if (!editEventTitle || !editEventDate || !editEventTime || !selectedEvent) {
+      Alert.alert("Missing Fields", "Please fill in all fields.");
+      return;
+    }
+    const dateTime = new Date(editEventDate + 'T' + editEventTime.toTimeString().slice(0, 8));
+    setEvents(events.map(e => e.id === selectedEvent.id ? { ...e, title: editEventTitle, date: dateTime.toISOString() } : e));
+    setEditModalVisible(false);
+    setSelectedEvent(null);
+  };
 
   // Placeholder for add event (future feature)
   const addEvent = () => {
-    Alert.alert('Add Event', 'Feature coming soon!');
+    setNewEventTitle("");
+    setNewEventDate(selectedDate || new Date().toISOString().slice(0, 10));
+    setNewEventTime(new Date());
+    setModalVisible(true);
+  };
+
+  const handleSaveEvent = () => {
+    if (!newEventTitle || !newEventDate || !newEventTime) {
+      Alert.alert("Missing Fields", "Please fill in all fields.");
+      return;
+    }
+    // Combine date and time
+    const dateTime = new Date(newEventDate + 'T' + newEventTime.toTimeString().slice(0, 8));
+    const newEvent: CalendarEvent = {
+      id: Math.random().toString(36).substr(2, 9),
+      title: newEventTitle,
+      date: dateTime.toISOString(),
+    };
+    setEvents([newEvent, ...events]);
+    setModalVisible(false);
+  };
+
+  // Handler for pressing an event card
+  const handleEventPress = (event: CalendarEvent) => {
+    setSelectedEvent(event);
+    setDetailsModalVisible(true);
   };
 
   // Quick stats
   const totalEvents = events.length;
-  const nextEvent = events
-    .filter(e => new Date(e.date) > new Date())
+  const upcomingEvents = events.filter(e => new Date(e.date) > new Date());
+  const nextEvent = upcomingEvents
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const data = await getCalendarEvents()
-        setEvents(data)
-      } catch (error) {
-        console.error("Error fetching events:", error)
-        Alert.alert("Error", "Could not load calendar events.")
-      } finally {
-        setLoading(false)
-      }
+    if (events.length === 0) {
+      const now = new Date();
+      const defaultEvents: CalendarEvent[] = [
+        {
+          id: '1',
+          title: 'Team Sync Meeting',
+          date: new Date(now.getTime() + 1 * 60 * 60 * 1000).toISOString(), // 1 hour from now
+        },
+        {
+          id: '2',
+          title: 'Project Kickoff',
+          date: new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours from now
+        },
+        {
+          id: '3',
+          title: 'Client Demo',
+          date: new Date(now.getTime() + 3 * 60 * 60 * 1000).toISOString(), // 3 hours from now
+        },
+      ];
+      setEvents(defaultEvents);
     }
-    fetchData()
-  }, [])
+    setLoading(false);
+    // eslint-disable-next-line
+  }, []);
 
   // Filter events for the selected date
   const eventsForSelectedDate = selectedDate
@@ -85,8 +173,219 @@ export default function CalendarScreen() {
 
   return (
     <DarkGradientBackground>
+      {/* Event Creation Modal */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+          <View style={{ backgroundColor: colors.surface, padding: 24, borderRadius: 18, width: '90%' }}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.text, marginBottom: 12 }}>Add Event</Text>
+            <TextInput
+              placeholder="Event Title"
+              value={newEventTitle}
+              onChangeText={setNewEventTitle}
+              style={{ borderWidth: 1, borderColor: colors.primary, borderRadius: 8, padding: 10, marginBottom: 14, color: colors.text }}
+              placeholderTextColor={colors.textSecondary}
+            />
+            <TouchableOpacity onPress={() => setShowDatePicker(true)} style={{ marginBottom: 14 }}>
+              <Text style={{ color: colors.text, fontSize: 16 }}>
+                Date: {newEventDate || (selectedDate || new Date().toISOString().slice(0, 10))}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowTimePicker(true)} style={{ marginBottom: 14 }}>
+              <Text style={{ color: colors.text, fontSize: 16 }}>
+                Time: {newEventTime ? newEventTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+              </Text>
+            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 18 }}>
+              <Pressable onPress={() => setModalVisible(false)} style={{ marginRight: 18 }}>
+                <Text style={{ color: colors.textSecondary, fontSize: 16 }}>Cancel</Text>
+              </Pressable>
+              <Pressable onPress={handleSaveEvent}>
+                <Text style={{ color: colors.primary, fontSize: 16, fontWeight: 'bold' }}>Add</Text>
+              </Pressable>
+            </View>
+            {/* Date Picker */}
+            {showDatePicker && (
+              <>
+                {Platform.OS === 'android' ? (
+                  <Button title="Pick Date" onPress={() => setShowDatePicker(false)} />
+                ) : null}
+                <DateTimePicker
+                  value={newEventDate ? new Date(newEventDate) : new Date()}
+                  mode="date"
+                  display="default"
+                  minimumDate={new Date()}
+                  onChange={(event, date) => {
+                    setShowDatePicker(false);
+                    if (date) setNewEventDate(date.toISOString().slice(0, 10));
+                  }}
+                />
+              </>
+            )}
+            {/* Time Picker */}
+            {showTimePicker && (
+              <>
+                {Platform.OS === 'android' ? (
+                  <Button title="Pick Time" onPress={() => setShowTimePicker(false)} />
+                ) : null}
+                <DateTimePicker
+                  value={newEventTime || new Date()}
+                  mode="time"
+                  display="clock"
+                  minimumDate={
+                    newEventDate === new Date().toISOString().slice(0, 10)
+                      ? new Date()
+                      : undefined
+                  }
+                  onChange={(event, date) => {
+                    setShowTimePicker(false);
+                    if (date) setNewEventTime(date);
+                  }}
+                />
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+      {/* Event Details Modal */}
+      <Modal
+        visible={detailsModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setDetailsModalVisible(false)}
+      >
+        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.2)' }}>
+          <View style={{ backgroundColor: colors.surface, borderTopLeftRadius: 18, borderTopRightRadius: 18, padding: 28, minHeight: 440 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 22, color: colors.text }}>Calendar event</Text>
+              <Pressable onPress={() => setDetailsModalVisible(false)}>
+                <Ionicons name="close" size={26} color={colors.textSecondary} />
+              </Pressable>
+            </View>
+            {selectedEvent && (
+              <>
+                <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 21, marginBottom: 4 }}>{selectedEvent.title}</Text>
+                <Text style={{ color: colors.textSecondary, marginBottom: 18, fontSize: 17 }}>
+                  {formatDate(selectedEvent.date)}
+                </Text>
+                <Pressable style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 22 }} onPress={() => {
+                  if (selectedEvent) {
+                    setDetailsModalVisible(false);
+                    router.push({ pathname: '/events/[eventId]/index', params: { eventId: selectedEvent.id } });
+                  }
+                }}>
+                  <Ionicons name="arrow-forward" size={22} color={colors.primary} style={{ marginRight: 10 }} />
+                  <Text style={{ color: colors.primary, fontWeight: '500', fontSize: 17 }}>Open &quot;{selectedEvent.title}&quot;</Text>
+                </Pressable>
+                <Pressable style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
+                  <Ionicons name="document-outline" size={22} color={colors.primary} style={{ marginRight: 10 }} />
+                  <Text style={{ color: colors.primary, fontSize: 17 }}>Create a note</Text>
+                </Pressable>
+                <Pressable style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
+                  <Ionicons name="link-outline" size={22} color={colors.text} style={{ marginRight: 10 }} />
+                  <Text style={{ color: colors.text, fontSize: 17 }}>Link a note</Text>
+                </Pressable>
+                <Pressable style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
+                  <Ionicons name="search-outline" size={22} color={colors.text} style={{ marginRight: 10 }} />
+                  <Text style={{ color: colors.text, fontSize: 17 }}>View related notes</Text>
+                </Pressable>
+                <Pressable style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }} onPress={handleEditEvent}>
+                  <Ionicons name="pencil-outline" size={22} color={colors.text} style={{ marginRight: 10 }} />
+                  <Text style={{ color: colors.text, fontSize: 17 }}>Edit event</Text>
+                </Pressable>
+                <Pressable style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }} onPress={handleDeleteEvent}>
+                  <Ionicons name="trash-outline" size={22} color={colors.error} style={{ marginRight: 10 }} />
+                  <Text style={{ color: colors.error, fontSize: 17 }}>Delete event</Text>
+                </Pressable>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+      {/* Edit Event Modal */}
+      <Modal
+        visible={editModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setEditModalVisible(false)}
+      >
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+          <View style={{ backgroundColor: colors.surface, padding: 24, borderRadius: 18, width: '90%' }}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.text, marginBottom: 12 }}>Edit Event</Text>
+            <TextInput
+              placeholder="Event Title"
+              value={editEventTitle}
+              onChangeText={setEditEventTitle}
+              style={{ borderWidth: 1, borderColor: colors.primary, borderRadius: 8, padding: 10, marginBottom: 14, color: colors.text }}
+              placeholderTextColor={colors.textSecondary}
+            />
+            <TouchableOpacity onPress={() => setShowEditDatePicker(true)} style={{ marginBottom: 14 }}>
+              <Text style={{ color: colors.text, fontSize: 16 }}>
+                Date: {editEventDate || new Date().toISOString().slice(0, 10)}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowEditTimePicker(true)} style={{ marginBottom: 14 }}>
+              <Text style={{ color: colors.text, fontSize: 16 }}>
+                Time: {editEventTime ? editEventTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+              </Text>
+            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 18 }}>
+              <Pressable onPress={() => setEditModalVisible(false)} style={{ marginRight: 18 }}>
+                <Text style={{ color: colors.textSecondary, fontSize: 16 }}>Cancel</Text>
+              </Pressable>
+              <Pressable onPress={handleSaveEditEvent}>
+                <Text style={{ color: colors.primary, fontSize: 16, fontWeight: 'bold' }}>Save</Text>
+              </Pressable>
+            </View>
+            {/* Date Picker */}
+            {showEditDatePicker && (
+              <>
+                {Platform.OS === 'android' ? (
+                  <Button title="Pick Date" onPress={() => setShowEditDatePicker(false)} />
+                ) : null}
+                <DateTimePicker
+                  value={editEventDate ? new Date(editEventDate) : new Date()}
+                  mode="date"
+                  display="default"
+                  minimumDate={new Date()}
+                  onChange={(event, date) => {
+                    setShowEditDatePicker(false);
+                    if (date) setEditEventDate(date.toISOString().slice(0, 10));
+                  }}
+                />
+              </>
+            )}
+            {/* Time Picker */}
+            {showEditTimePicker && (
+              <>
+                {Platform.OS === 'android' ? (
+                  <Button title="Pick Time" onPress={() => setShowEditTimePicker(false)} />
+                ) : null}
+                <DateTimePicker
+                  value={editEventTime || new Date()}
+                  mode="time"
+                  display="clock"
+                  minimumDate={
+                    editEventDate === new Date().toISOString().slice(0, 10)
+                      ? new Date()
+                      : undefined
+                  }
+                  onChange={(event, date) => {
+                    setShowEditTimePicker(false);
+                    if (date) setEditEventTime(date);
+                  }}
+                />
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.surface }]}> 
+      <View style={[styles.header, { backgroundColor: colors.card }]}> 
         <View>
           <Text style={[styles.headerTitle, { color: colors.text }]}>Calendar</Text>
           <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>Your schedule at a glance</Text>
@@ -101,17 +400,17 @@ export default function CalendarScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Quick Stats Row */}
-        <View style={styles.statsRow}>
-          <View style={[styles.statCard, { backgroundColor: colors.surface }]}> 
+        <View style={[styles.statsRow, { paddingHorizontal: 10 }]}> 
+          <View style={[styles.statCard, { backgroundColor: colors.surface, flex: 1, marginRight: 8 }]}> 
             <Ionicons name="calendar" size={20} color={colors.primary} style={{ marginRight: 8 }} />
             <Text style={{ color: colors.text, fontWeight: '600', fontSize: 15 }}>Total Events</Text>
             <Text style={{ color: colors.textSecondary, marginLeft: 6 }}>{totalEvents}</Text>
           </View>
-          <View style={[styles.statCard, { backgroundColor: colors.surface }]}> 
+          <View style={[styles.statCard, { backgroundColor: colors.surface, flex: 1, marginLeft: 8 }]}> 
             <Ionicons name="alarm" size={20} color={colors.primary} style={{ marginRight: 8 }} />
-            <Text style={{ color: colors.text, fontWeight: '600', fontSize: 15 }}>Next</Text>
-            <Text style={{ color: colors.textSecondary, marginLeft: 6 }}>
-              {nextEvent ? nextEvent.title : 'None'}
+            <Text style={{ color: colors.text, fontWeight: '600', fontSize: 15, flexShrink: 1, flexWrap: 'nowrap', maxWidth: 120 }} numberOfLines={1} ellipsizeMode="tail">Next</Text>
+            <Text style={{ color: colors.textSecondary, marginLeft: 6, flex: 1 }} numberOfLines={1} ellipsizeMode="tail">
+              {nextEvent ? (nextEvent.title.length > 18 ? nextEvent.title.slice(0, 18) + '...' : nextEvent.title) : 'None'}
             </Text>
           </View>
         </View>
@@ -143,7 +442,7 @@ export default function CalendarScreen() {
             <View>
               <Text style={{ color: colors.text, fontWeight: '600', fontSize: 15 }}>Upcoming Events</Text>
               <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                3 events
+                {upcomingEvents.length} event{upcomingEvents.length === 1 ? '' : 's'}
               </Text>
             </View>
           </View>
@@ -165,10 +464,10 @@ export default function CalendarScreen() {
           </Text>
         )}
         {selectedDate && eventsForSelectedDate.slice(0, 3).map(event => (
-          <View key={event.id} style={eventCardStyle(colors)}>
+          <Pressable key={event.id} style={eventCardStyle(colors)} onPress={() => handleEventPress(event)}>
             <Text style={{ color: colors.text, fontWeight: '600', fontSize: 16 }}>{event.title}</Text>
             <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{formatDate(event.date)}</Text>
-          </View>
+          </Pressable>
         ))}
         {/* Always show 3 upcoming events below */}
         <Text style={{ color: colors.text, fontSize: 18, fontWeight: 'bold', marginTop: 18, marginBottom: 8, textAlign: 'center' }}>
@@ -179,10 +478,10 @@ export default function CalendarScreen() {
           .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
           .slice(0, 3)
           .map(event => (
-            <View key={event.id + '-upcoming'} style={eventCardStyle(colors)}>
+            <Pressable key={event.id + '-upcoming'} style={eventCardStyle(colors)} onPress={() => handleEventPress(event)}>
               <Text style={{ color: colors.text, fontWeight: '600', fontSize: 16 }}>{event.title}</Text>
               <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{formatDate(event.date)}</Text>
-            </View>
+            </Pressable>
         ))}
       </ScrollView>
       {/* Floating Action Button */}

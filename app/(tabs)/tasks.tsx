@@ -519,67 +519,31 @@ const TasksScreen = () => {
       {/* Add Task Modal */}
       <Modal
         visible={addModalVisible}
-        transparent
-        animationType="fade"
+        animationType="slide"
+        transparent={true}
         onRequestClose={() => setAddModalVisible(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setAddModalVisible(false)}>
-          <View style={[styles.actionSheet, { backgroundColor: colors.surface }]}
-            pointerEvents="box-none">
-            <Text style={{ fontWeight: 'bold', fontSize: 18, color: colors.text, marginBottom: 12 }}>Add New Task</Text>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+          <View style={{ backgroundColor: colors.surface, padding: 24, borderRadius: 18, width: '90%' }}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.text, marginBottom: 12 }}>Add Task</Text>
             <TextInput
-              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+              placeholder="Task Title"
               value={newTaskName}
               onChangeText={setNewTaskName}
-              placeholder="Task name"
+              style={{ borderWidth: 1, borderColor: colors.primary, borderRadius: 8, padding: 10, marginBottom: 14, color: colors.text }}
               placeholderTextColor={colors.textSecondary}
               maxLength={60}
             />
-            {/* Date Picker */}
-            <Pressable
-              style={[styles.pickerBtn, { borderColor: colors.border, backgroundColor: colors.background }]}
-              onPress={() => setShowDatePicker(true)}
-            >
+            <Pressable onPress={() => setShowDatePicker(true)} style={{ marginBottom: 14 }}>
               <Text style={{ color: colors.text, fontSize: 16 }}>
-                {newTaskDate ? `Date: ${newTaskDate.toLocaleDateString()}` : 'Pick Date'}
+                Date: {newTaskDate ? newTaskDate.toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10)}
               </Text>
             </Pressable>
-            {showDatePicker && !showTimePicker && (
-              <DateTimePicker
-                value={newTaskDate || today}
-                mode="date"
-                display={Platform.OS === 'android' ? 'calendar' : (Platform.OS === 'ios' ? 'inline' : 'default')}
-                onChange={(event, selectedDate) => {
-                  setShowDatePicker(false);
-                  if (selectedDate) setNewTaskDate(selectedDate);
-                  else console.log('Date picker cancelled or error');
-                }}
-                minimumDate={today}
-                onError={err => console.error('DateTimePicker error:', err)}
-              />
-            )}
-            {/* Time Picker */}
-            <Pressable
-              style={[styles.pickerBtn, { borderColor: colors.border, backgroundColor: colors.background }]}
-              onPress={() => setShowTimePicker(true)}
-            >
+            <Pressable onPress={() => setShowTimePicker(true)} style={{ marginBottom: 14 }}>
               <Text style={{ color: colors.text, fontSize: 16 }}>
-                {newTaskTime ? `Time: ${newTaskTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Pick Time'}
+                Time: {newTaskTime ? newTaskTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
               </Text>
             </Pressable>
-            {showTimePicker && !showDatePicker && (
-              <DateTimePicker
-                value={newTaskTime || new Date()}
-                mode="time"
-                display={Platform.OS === 'android' ? 'spinner' : 'default'}
-                onChange={(event, selectedTime) => {
-                  setShowTimePicker(false);
-                  if (selectedTime) setNewTaskTime(selectedTime);
-                  else console.log('Time picker cancelled or error');
-                }}
-                onError={err => console.error('DateTimePicker error:', err)}
-              />
-            )}
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 18 }}>
               <Pressable onPress={() => setAddModalVisible(false)} style={{ marginRight: 18 }}>
                 <Text style={{ color: colors.textSecondary, fontSize: 16 }}>Cancel</Text>
@@ -588,8 +552,42 @@ const TasksScreen = () => {
                 <Text style={{ color: colors.primary, fontSize: 16, fontWeight: 'bold' }}>Add</Text>
               </Pressable>
             </View>
+            {/* Date Picker */}
+            {showDatePicker && (
+              <>
+                {Platform.OS === 'android' ? (
+                  <Pressable onPress={() => setShowDatePicker(false)}><Text style={{ color: colors.primary }}>Pick Date</Text></Pressable>
+                ) : null}
+                <DateTimePicker
+                  value={newTaskDate || new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={(event, date) => {
+                    setShowDatePicker(false);
+                    if (date) setNewTaskDate(date);
+                  }}
+                />
+              </>
+            )}
+            {/* Time Picker */}
+            {showTimePicker && (
+              <>
+                {Platform.OS === 'android' ? (
+                  <Pressable onPress={() => setShowTimePicker(false)}><Text style={{ color: colors.primary }}>Pick Time</Text></Pressable>
+                ) : null}
+                <DateTimePicker
+                  value={newTaskTime || new Date()}
+                  mode="time"
+                  display="clock"
+                  onChange={(event, date) => {
+                    setShowTimePicker(false);
+                    if (date) setNewTaskTime(date);
+                  }}
+                />
+              </>
+            )}
           </View>
-        </Pressable>
+        </View>
       </Modal>
       {/* Edit Task Modal */}
       <Modal
