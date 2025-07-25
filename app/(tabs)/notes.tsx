@@ -74,6 +74,11 @@ const NotesScreen = () => {
           onSubmitEditing={Keyboard.dismiss}
         />
       </View>
+      {/* Total Notes Row */}
+      <View style={styles.statsSimpleRow}>
+        <Ionicons name="document-text-outline" size={20} color={colors.primary} style={{ marginRight: 6 }} />
+        <Text style={{ color: colors.text, fontWeight: '600' }}>Total Notes: {filteredNotes.length}</Text>
+      </View>
       <FlatList
         data={filteredNotes}
         keyExtractor={(item) => item.id}
@@ -174,6 +179,15 @@ const styles = StyleSheet.create({
     right: 28,
     bottom: 36,
     zIndex: 10,
+  },
+  // Add statsSimpleRow for the total notes row
+  statsSimpleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingHorizontal: 20,
+    marginBottom: 10,
+    marginTop: 0,
   },
 });
 

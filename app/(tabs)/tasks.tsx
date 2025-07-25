@@ -347,7 +347,7 @@ const TasksScreen = () => {
             <Text style={{ fontSize: 48, marginBottom: 10 }}>✅</Text>
             <Text style={{ color: colors.textSecondary, fontSize: 18, fontWeight: '600', marginBottom: 8 }}>No tasks yet</Text>
             <Text style={{ color: colors.textSecondary, fontSize: 15, textAlign: 'center', maxWidth: 260 }}>
-              You're all caught up! Add a new task to get started.
+              You&apos;re all caught up! Add a new task to get started.
             </Text>
             <Text style={{ color: colors.primary, fontSize: 15, marginTop: 18, fontWeight: '500' }}>
               Tip: Tap the + button to add a task.
