@@ -174,7 +174,6 @@ const TasksScreen = () => {
       }
       case 'reschedule': {
         const task = tasks.find(t => t.id === selectedTaskId);
-        setRescheduleValue(task?.dueDate ? new Date(task.dueDate).toISOString().slice(0, 16) : "");
         setRescheduleModalVisible(true);
         break;
       }
@@ -224,7 +223,7 @@ const TasksScreen = () => {
   };
 
   const handleRescheduleSave = () => {
-    setTasks(prev => prev.map(t => t.id === selectedTaskId ? { ...t, dueDate: rescheduleValue } : t));
+    setTasks(prev => prev.map(t => t.id === selectedTaskId ? { ...t, dueDate: rescheduleDate ? rescheduleDate.toISOString() : undefined } : t));
     setRescheduleModalVisible(false);
     Alert.alert('Rescheduled', 'Task rescheduled successfully.');
   };
@@ -451,24 +450,33 @@ const TasksScreen = () => {
         animationType="fade"
         onRequestClose={() => setRescheduleModalVisible(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setRescheduleModalVisible(false)}>
-          <View style={[styles.actionSheet, { backgroundColor: colors.surface }]}
-            pointerEvents="box-none">
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+          <View style={{ backgroundColor: colors.surface, padding: 24, borderRadius: 18, width: '90%' }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <Text style={{ fontWeight: 'bold', fontSize: 18, color: colors.text }}>Reschedule Task</Text>
+              <Text style={{ fontWeight: 'bold', fontSize: 20, color: colors.text }}>Reschedule Task</Text>
               <Pressable onPress={handleRemoveSchedule} hitSlop={10} style={{ marginLeft: 8 }}>
                 <Ionicons name="trash" size={22} color={colors.error} />
               </Pressable>
             </View>
-            {/* Date Picker */}
-            <Pressable
-              style={[styles.pickerBtn, { borderColor: colors.border, backgroundColor: colors.background }]}
-              onPress={() => setShowRescheduleDatePicker(true)}
-            >
+            <Pressable onPress={() => setShowRescheduleDatePicker(true)} style={{ marginBottom: 14 }}>
               <Text style={{ color: colors.text, fontSize: 16 }}>
-                {rescheduleDate ? `Date: ${rescheduleDate.toLocaleDateString()}` : 'Pick Date'}
+                Date: {rescheduleDate ? rescheduleDate.toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10)}
               </Text>
             </Pressable>
+            <Pressable onPress={() => setShowRescheduleTimePicker(true)} style={{ marginBottom: 14 }}>
+              <Text style={{ color: colors.text, fontSize: 16 }}>
+                Time: {rescheduleTime ? rescheduleTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+              </Text>
+            </Pressable>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 18 }}>
+              <Pressable onPress={() => setRescheduleModalVisible(false)} style={{ marginRight: 18 }}>
+                <Text style={{ color: colors.textSecondary, fontSize: 16 }}>Cancel</Text>
+              </Pressable>
+              <Pressable onPress={handleRescheduleDueDate}>
+                <Text style={{ color: colors.primary, fontSize: 16, fontWeight: 'bold' }}>Save</Text>
+              </Pressable>
+            </View>
+            {/* Date Picker */}
             {showRescheduleDatePicker && !showRescheduleTimePicker && (
               <DateTimePicker
                 value={rescheduleDate || today}
@@ -484,19 +492,11 @@ const TasksScreen = () => {
               />
             )}
             {/* Time Picker */}
-            <Pressable
-              style={[styles.pickerBtn, { borderColor: colors.border, backgroundColor: colors.background }]}
-              onPress={() => setShowRescheduleTimePicker(true)}
-            >
-              <Text style={{ color: colors.text, fontSize: 16 }}>
-                {rescheduleTime ? `Time: ${rescheduleTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Pick Time'}
-              </Text>
-            </Pressable>
             {showRescheduleTimePicker && !showRescheduleDatePicker && (
               <DateTimePicker
                 value={rescheduleTime || new Date()}
                 mode="time"
-                display={Platform.OS === 'android' ? 'spinner' : 'default'}
+                display="clock"
                 onChange={(event, selectedTime) => {
                   setShowRescheduleTimePicker(false);
                   if (selectedTime) setRescheduleTime(selectedTime);
@@ -505,16 +505,8 @@ const TasksScreen = () => {
                 onError={err => console.error('DateTimePicker error:', err)}
               />
             )}
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 18 }}>
-              <Pressable onPress={() => setRescheduleModalVisible(false)} style={{ marginRight: 18 }}>
-                <Text style={{ color: colors.textSecondary, fontSize: 16 }}>Cancel</Text>
-              </Pressable>
-              <Pressable onPress={handleRescheduleDueDate}>
-                <Text style={{ color: colors.primary, fontSize: 16, fontWeight: 'bold' }}>Save</Text>
-              </Pressable>
-            </View>
           </View>
-        </Pressable>
+        </View>
       </Modal>
       {/* Add Task Modal */}
       <Modal
@@ -650,76 +642,11 @@ const TasksScreen = () => {
               <DateTimePicker
                 value={editTaskTime || new Date()}
                 mode="time"
-                display={Platform.OS === 'android' ? 'spinner' : 'default'}
+                display="clock"
                 onChange={(event, selectedTime) => {
                   setShowEditTimePicker(false);
                   if (selectedTime) setEditTaskTime(selectedTime);
                   else console.log('Edit time picker cancelled or error');
-                }}
-                onError={err => console.error('DateTimePicker error:', err)}
-              />
-            )}
-          </View>
-        </View>
-      </Modal>
-      {/* Reschedule Task Modal */}
-      <Modal
-        visible={rescheduleModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setRescheduleModalVisible(false)}
-      >
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
-          <View style={{ backgroundColor: colors.surface, padding: 24, borderRadius: 18, width: '90%' }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <Text style={{ fontWeight: 'bold', fontSize: 20, color: colors.text }}>Reschedule Task</Text>
-              <Pressable onPress={handleRemoveSchedule} hitSlop={10} style={{ marginLeft: 8 }}>
-                <Ionicons name="trash" size={22} color={colors.error} />
-              </Pressable>
-            </View>
-            <Pressable onPress={() => setShowRescheduleDatePicker(true)} style={{ marginBottom: 14 }}>
-              <Text style={{ color: colors.text, fontSize: 16 }}>
-                Date: {rescheduleDate ? rescheduleDate.toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10)}
-              </Text>
-            </Pressable>
-            <Pressable onPress={() => setShowRescheduleTimePicker(true)} style={{ marginBottom: 14 }}>
-              <Text style={{ color: colors.text, fontSize: 16 }}>
-                Time: {rescheduleTime ? rescheduleTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
-              </Text>
-            </Pressable>
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 18 }}>
-              <Pressable onPress={() => setRescheduleModalVisible(false)} style={{ marginRight: 18 }}>
-                <Text style={{ color: colors.textSecondary, fontSize: 16 }}>Cancel</Text>
-              </Pressable>
-              <Pressable onPress={handleRescheduleDueDate}>
-                <Text style={{ color: colors.primary, fontSize: 16, fontWeight: 'bold' }}>Save</Text>
-              </Pressable>
-            </View>
-            {/* Date Picker */}
-            {showRescheduleDatePicker && !showRescheduleTimePicker && (
-              <DateTimePicker
-                value={rescheduleDate || today}
-                mode="date"
-                display={Platform.OS === 'android' ? 'calendar' : (Platform.OS === 'ios' ? 'inline' : 'default')}
-                onChange={(event, selectedDate) => {
-                  setShowRescheduleDatePicker(false);
-                  if (selectedDate) setRescheduleDate(selectedDate);
-                  else console.log('Reschedule date picker cancelled or error');
-                }}
-                minimumDate={today}
-                onError={err => console.error('DateTimePicker error:', err)}
-              />
-            )}
-            {/* Time Picker */}
-            {showRescheduleTimePicker && !showRescheduleDatePicker && (
-              <DateTimePicker
-                value={rescheduleTime || new Date()}
-                mode="time"
-                display={Platform.OS === 'android' ? 'spinner' : 'default'}
-                onChange={(event, selectedTime) => {
-                  setShowRescheduleTimePicker(false);
-                  if (selectedTime) setRescheduleTime(selectedTime);
-                  else console.log('Reschedule time picker cancelled or error');
                 }}
                 onError={err => console.error('DateTimePicker error:', err)}
               />
