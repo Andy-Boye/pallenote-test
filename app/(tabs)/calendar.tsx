@@ -272,15 +272,15 @@ export default function CalendarScreen() {
                 <Text style={{ color: colors.textSecondary, marginBottom: 18, fontSize: 17 }}>
                   {formatDate(selectedEvent.date)}
                 </Text>
-                <Pressable style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 22 }} onPress={() => {
+                {/* <Pressable style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 22 }} onPress={() => {
                   if (selectedEvent) {
                     setDetailsModalVisible(false);
-                    router.push({ pathname: '/events/[eventId]/index', params: { eventId: selectedEvent.id } });
+                    router.push({ pathname: '../events/[eventId]/index', params: { eventId: selectedEvent.id } });
                   }
                 }}>
                   <Ionicons name="arrow-forward" size={22} color={colors.primary} style={{ marginRight: 10 }} />
                   <Text style={{ color: colors.primary, fontWeight: '500', fontSize: 17 }}>Open &quot;{selectedEvent.title}&quot;</Text>
-                </Pressable>
+                </Pressable> */}
                 <Pressable style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
                   <Ionicons name="document-outline" size={22} color={colors.primary} style={{ marginRight: 10 }} />
                   <Text style={{ color: colors.primary, fontSize: 17 }}>Create a note</Text>
