@@ -31,10 +31,10 @@ const FloatingActionButton = () => {
 
     switch (action) {
       case "note":
-        router.push("/notes/new")
+        router.push("/note-detail?action=new")
         break
       case "task":
-        router.push("/tasks/new")
+        router.push("/(tabs)/tasks?action=new")
         break
       case "recording":
         router.push("/recording")

@@ -8,12 +8,14 @@ interface Props {
   style?: any;
 }
 
-const DARK_GRADIENT: [string, string, string] = ['#1a2747', '#22335a', '#2c406e'];
-const ARC_COLOR = '#101a2b';
+// Updated gradient colors to match Microsoft Teams dark theme
+const DARK_GRADIENT: [string, string, string] = ['#1b1b1b', '#2d2d30', '#3c3c3c'];
+const ARC_COLOR = '#1b1b1b';
 
 export default function DarkGradientBackground({ children, style }: Props) {
   const { colors } = useTheme();
-  const isDark = colors.background === '#151718' || colors.background === '#101a2b';
+  // Updated to check for Microsoft Teams dark background colors
+  const isDark = colors.background === '#1b1b1b' || colors.background === '#2d2d30' || colors.background === '#3c3c3c';
 
   if (!isDark) {
     return <View style={[{ flex: 1, backgroundColor: colors.background }, style]}>{children}</View>;

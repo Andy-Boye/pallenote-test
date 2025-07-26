@@ -1,20 +1,20 @@
 "use client"
 
-import { useRouter } from "expo-router"
 import React, { useEffect, useRef } from "react"
 import {
-    Animated,
-    Dimensions,
-    StatusBar,
-    StyleSheet,
-    Text,
-    View,
+  View,
+  Animated,
+  Text,
+  StyleSheet,
+  Dimensions,
+  StatusBar,
 } from "react-native"
+import { useRouter } from "expo-router"
+import { LinearGradient } from 'expo-linear-gradient'
 import { useAuth } from "../contexts/AuthContext"
 import { useTheme } from "../contexts/ThemeContext"
 
 const { width } = Dimensions.get("window")
-const SPARKLE_COUNT = 8
 
 const SplashScreen = () => {
   const router = useRouter()
@@ -26,8 +26,8 @@ const SplashScreen = () => {
   const pulseAnim = useRef(new Animated.Value(1)).current
 
   const sparkles = useRef(
-    Array.from({ length: SPARKLE_COUNT }).map((_, i) => {
-      const angle = (360 / SPARKLE_COUNT) * i
+    Array.from({ length: 8 }).map((_, i) => {
+      const angle = (360 / 8) * i
       const radius = width * 0.2
       const x = radius * Math.cos((angle * Math.PI) / 180)
       const y = radius * Math.sin((angle * Math.PI) / 180)
@@ -41,18 +41,21 @@ const SplashScreen = () => {
   ).current
 
   useEffect(() => {
+    // Fade in
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 800,
       useNativeDriver: true,
     }).start()
 
+    // One-time spin
     Animated.timing(spinAnim, {
       toValue: 1,
       duration: 2000,
       useNativeDriver: true,
     }).start()
 
+    // Logo pulse
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
@@ -68,8 +71,9 @@ const SplashScreen = () => {
       ])
     ).start()
 
+    // Sparkle animations
     sparkles.forEach((sparkle, index) => {
-      const delay = index * 200
+      const delay = index * 300
       Animated.loop(
         Animated.sequence([
           Animated.delay(delay),
@@ -123,10 +127,22 @@ const SplashScreen = () => {
   })
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.primary }]}> 
-      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+    <View style={styles.container}>
+      {/* Enhanced gradient background matching recording screen */}
+      <LinearGradient
+        colors={['#070c18', '#101a2b', '#181f2e']}
+        style={StyleSheet.absoluteFill}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+      />
+      
+      {/* Enhanced decorative elements */}
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 120, backgroundColor: '#101a2b', borderBottomLeftRadius: 80, borderBottomRightRadius: 80, opacity: 0.15, zIndex: 1 }} />
+      <View style={{ position: 'absolute', top: 40, left: 20, right: 20, height: 60, backgroundColor: '#0078d4', borderRadius: 30, opacity: 0.08, zIndex: 1 }} />
+      
+      <StatusBar barStyle="light-content" backgroundColor="#070c18" />
 
-      <Animated.View style={[styles.logoWrapper, { opacity: fadeAnim }]}> 
+      <Animated.View style={[styles.logoWrapper, { opacity: fadeAnim }]}>
         {/* Sparkles */}
         {sparkles.map((sparkle, i) => (
           <Animated.View
@@ -144,16 +160,16 @@ const SplashScreen = () => {
           />
         ))}
 
-        {/* Rotating Circle with "P" */}
-        <Animated.View style={[styles.logoCircle, { backgroundColor: '#fff', transform: [{ rotate: spin }] }]}> 
-          <Text style={[styles.logoText, { color: '#A259FF' }]}>P</Text>
+        {/* Rotating "P" Circle */}
+        <Animated.View style={[styles.logoCircle, { transform: [{ rotate: spin }] }]}>
+          <Text style={styles.logoText}>P</Text>
         </Animated.View>
 
-        {/* Brand Text */}
+        {/* Brand Text with Pulse */}
         <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-          <Text style={[styles.brandText, { color: "#fff" }]}> 
+          <Text style={styles.brandText}>
             Pall
-            <Text style={[styles.brandTextE, { color: '#A259FF' }]}>e</Text>
+            <Text style={styles.brandTextE}>e</Text>
             note
           </Text>
         </Animated.View>
@@ -174,29 +190,33 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   logoCircle: {
-    width: width * 0.35,
-    height: width * 0.35,
-    borderRadius: width * 0.175,
+    width: width * 0.22,
+    height: width * 0.22,
+    borderRadius: (width * 0.22) / 2,
     backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 12,
     zIndex: 2,
+    marginBottom: 5,
   },
   logoText: {
-    fontSize: width * 0.15,
+    fontSize: width * 0.12,
     fontWeight: "bold",
+    color: "#8B5CF6",
+    textAlign: "center",
+    textAlignVertical: "center",
   },
   brandText: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: "600",
+    color: "#fff",
     textAlign: "center",
   },
   brandTextE: {
-    fontSize: 42,
+    fontSize: 56,
     fontStyle: "italic",
     fontWeight: "bold",
-    color: undefined, // will be set inline
+    color: "#A855F7",
     paddingHorizontal: 4,
   },
   sparkle: {

@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, SectionList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import DarkGradientBackground from '../components/DarkGradientBackground';
+import ScreenBackground from '../components/ScreenBackground';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface Notification {
@@ -113,15 +113,15 @@ const NotificationsScreen = () => {
   const handleToggleSection = (key: string) => setCollapsed(prev => ({ ...prev, [key]: !prev[key] }));
 
   if (loading) return (
-    <DarkGradientBackground>
+    <ScreenBackground>
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator color={colors.primary} size="large" />
       </View>
-    </DarkGradientBackground>
+    </ScreenBackground>
   );
 
   return (
-    <DarkGradientBackground>
+    <ScreenBackground>
       {/* Header with blur overlay */}
       <View style={{ position: 'relative', zIndex: 2 }}>
         <BlurView intensity={30} tint={colors.background === '#101a2b' ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
@@ -206,7 +206,7 @@ const NotificationsScreen = () => {
           </View>
         }
       />
-    </DarkGradientBackground>
+    </ScreenBackground>
   );
 };
 

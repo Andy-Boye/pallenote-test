@@ -13,10 +13,21 @@ const ForgotPasswordScreen = () => {
   const [email, setEmail] = useState("");
 
   const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      Alert.alert("Error", "Please enter your email address.");
+      return;
+    }
+
     try {
       // await forgotPassword(email); // Uncomment if you have this API
-      Alert.alert("Check your email", "Password reset instructions sent");
-      router.back();
+      // Navigate to OTP verification for password reset
+      router.push({
+        pathname: "/(auth)/otp-verification",
+        params: {
+          email: email,
+          onSuccessRoute: "/(auth)/reset-password"
+        }
+      });
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to send reset email");
     }

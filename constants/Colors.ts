@@ -1,5 +1,5 @@
 const tintColorLight = '#2f95dc';
-const tintColorDark = '#fff';
+const tintColorDark = '#0078d4'; // Microsoft Teams accent blue
 
 const Colors = {
   light: {
@@ -11,11 +11,11 @@ const Colors = {
     tabIconSelected: tintColorLight,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
+    text: '#FFFFFF', // Microsoft Teams white text
+    background: '#070c18', // Recording screen gradient start color
     tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
+    icon: '#CCCCCC', // Microsoft Teams icon color
+    tabIconDefault: '#8a9bb8', // Softer blue-gray for dimmed text
     tabIconSelected: tintColorDark,
   },
 };

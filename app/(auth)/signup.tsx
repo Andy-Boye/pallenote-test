@@ -53,7 +53,14 @@ const SignupScreen = () => {
   const onSubmit = async (data: FormData) => {
     try {
       await signUp(data.name, data.email, data.password);
-      // Redirection is usually handled in AuthContext, but fallback here
+      // Navigate to OTP verification for email verification
+      router.push({
+        pathname: "/(auth)/otp-verification",
+        params: {
+          email: data.email,
+          onSuccessRoute: "/(tabs)/home"
+        }
+      });
     } catch {
       Alert.alert("Signup Failed", "An error occurred during signup.");
     }

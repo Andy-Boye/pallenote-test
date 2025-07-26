@@ -6,8 +6,8 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import DarkGradientBackground from '../../components/DarkGradientBackground';
+import { ActivityIndicator, FlatList, StyleSheet, StatusBar, Text, TouchableOpacity, View } from "react-native";
+import ScreenBackground from '../../components/ScreenBackground';
 
 const NotesScreen = () => {
   const router = useRouter();
@@ -30,11 +30,11 @@ const NotesScreen = () => {
   }, []);
 
   const openNote = (noteId: string) => {
-    router.push(`/notes/${noteId}`);
+    router.push(`/note-detail?id=${noteId}`);
   };
 
   const addNote = () => {
-    router.push("../notes/new");
+    router.push("/note-detail?action=new");
   };
 
   if (loading) {
@@ -46,15 +46,20 @@ const NotesScreen = () => {
   }
 
   return (
-    <DarkGradientBackground>
+    <ScreenBackground>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.surface }]}> 
+      <View style={[styles.header, { backgroundColor: 'transparent' }]}> 
         <Text style={{ fontSize: 32, fontWeight: 'bold', color: colors.primary, marginRight: 10 }}>📝</Text>
         <View>
           <Text style={[styles.headerTitle, { color: colors.text }]}>Notes</Text>
           <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>Your recent notes and ideas</Text>
         </View>
-        <TouchableOpacity onPress={addNote} style={[styles.addButton, { backgroundColor: colors.primary }]}>
+        <TouchableOpacity 
+          onPress={addNote} 
+          style={[styles.addButton, { backgroundColor: colors.primary }]}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="add" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
@@ -87,7 +92,7 @@ const NotesScreen = () => {
           </Text>
         }
       />
-    </DarkGradientBackground>
+    </ScreenBackground>
   );
 };
 
@@ -97,10 +102,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: 50,
+    paddingTop: 60,
     paddingHorizontal: 20,
     paddingBottom: 16,
     backgroundColor: "transparent",
+    zIndex: 10,
   },
   headerTitle: {
     fontSize: 22,
@@ -114,6 +120,8 @@ const styles = StyleSheet.create({
   addButton: {
     borderRadius: 24,
     padding: 8,
+    zIndex: 11,
+    elevation: 3,
   },
   noteCard: {
     borderRadius: 14,

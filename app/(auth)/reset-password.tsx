@@ -38,7 +38,7 @@ const schema = yup.object().shape({
 const ResetPasswordScreen = () => {
   const { colors } = useTheme();
   const router = useRouter();
-  const { token } = useLocalSearchParams<{ token?: string }>();
+  const { token, email } = useLocalSearchParams<{ token?: string; email?: string }>();
 
   const {
     control,
@@ -59,7 +59,7 @@ const ResetPasswordScreen = () => {
       Alert.alert("Success", "Password has been reset.", [
         {
           text: "OK",
-          onPress: () => router.replace("../auth/login"),
+          onPress: () => router.replace("/(auth)/login"),
         },
       ]);
     } catch (error: any) {

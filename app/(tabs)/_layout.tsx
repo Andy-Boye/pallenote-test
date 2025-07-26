@@ -10,7 +10,7 @@ function TabBarIcon(props: { name: React.ComponentProps<typeof FontAwesome>['nam
 }
 
 export default function TabLayout() {
-  const { isDarkMode } = useTheme();
+  const { isDarkMode, colors } = useTheme();
   const colorScheme = isDarkMode ? 'dark' : 'light';
 
   return (
@@ -20,8 +20,22 @@ export default function TabLayout() {
           tabBarActiveTintColor: Colors[colorScheme].tint,
           tabBarInactiveTintColor: Colors[colorScheme].tabIconDefault,
           tabBarStyle: {
-            backgroundColor: Colors[colorScheme].background,
-            borderTopColor: Colors[colorScheme].icon,
+            backgroundColor: isDarkMode ? '#0a1420' : Colors[colorScheme].background, // Use darker surface color for dark mode
+            borderTopColor: isDarkMode ? '#1a2332' : Colors[colorScheme].icon, // Use border color for dark mode
+            borderTopWidth: 0.5,
+            paddingBottom: 4,
+            shadowColor: isDarkMode ? '#000' : '#000',
+            shadowOffset: {
+              width: 0,
+              height: -2,
+            },
+            shadowOpacity: isDarkMode ? 0.3 : 0.1,
+            shadowRadius: 4,
+            elevation: 8,
+          },
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontWeight: '500',
           },
           headerShown: false,
         }}>

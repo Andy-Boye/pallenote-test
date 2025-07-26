@@ -73,7 +73,7 @@ const TasksScreen = () => {
     const fetchTasks = async () => {
       try {
         const data = await getTasks();
-        setTasks(data as Task[]);
+        setTasks(data);
       } catch (error) {
         console.error("Error fetching tasks:", error);
         Alert.alert("Error", "Failed to load tasks.");
@@ -174,7 +174,9 @@ const TasksScreen = () => {
       }
       case 'reschedule': {
         const task = tasks.find(t => t.id === selectedTaskId);
-        setRescheduleValue(task?.dueDate ? new Date(task.dueDate).toISOString().slice(0, 16) : "");
+        setRescheduleTaskId(task?.id || "");
+        setRescheduleDate(task?.dueDate ? new Date(task.dueDate) : null);
+        setRescheduleTime(task?.dueDate ? new Date(task.dueDate) : null);
         setRescheduleModalVisible(true);
         break;
       }
@@ -224,7 +226,14 @@ const TasksScreen = () => {
   };
 
   const handleRescheduleSave = () => {
-    setTasks(prev => prev.map(t => t.id === selectedTaskId ? { ...t, dueDate: rescheduleValue } : t));
+    let dueDate: string | undefined = undefined;
+    if (rescheduleDate && rescheduleTime) {
+      const date = new Date(rescheduleDate);
+      date.setHours(rescheduleTime.getHours());
+      date.setMinutes(rescheduleTime.getMinutes());
+      dueDate = date.toISOString();
+    }
+    setTasks(prev => prev.map(t => t.id === selectedTaskId ? { ...t, dueDate } : t));
     setRescheduleModalVisible(false);
     Alert.alert('Rescheduled', 'Task rescheduled successfully.');
   };

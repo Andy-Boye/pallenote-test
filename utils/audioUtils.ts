@@ -43,14 +43,10 @@ export const startRecording = async (): Promise<Audio.Recording> => {
       },
       ios: {
         extension: ".m4a",
-        outputFormat: 2, // MPEG4AAC = 2
         audioQuality: 2, // High = 2
         sampleRate: 44100,
         numberOfChannels: 2,
         bitRate: 128000,
-        linearPCMBitDepth: 16,
-        linearPCMIsBigEndian: false,
-        linearPCMIsFloat: false,
       },
       web: {}, // Add empty web property to satisfy RecordingOptions type
     }
