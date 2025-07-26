@@ -22,6 +22,14 @@ const NotesScreen = () => {
   const [searchText, setSearchText] = useState("");
   const [editorVisible, setEditorVisible] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingNote, setEditingNote] = useState<{
+    id: string;
+    title: string;
+    content: string;
+    notebookId: string;
+    notebookTitle: string;
+    date: string;
+  } | null>(null);
 
   useEffect(() => {
     const fetchNotes = async () => {
@@ -38,16 +46,30 @@ const NotesScreen = () => {
   }, []);
 
   const openNote = (noteId: string) => {
-    router.push(`/notes/${noteId}`);
+    const note = notes.find(n => n.id === noteId);
+    if (note) {
+      // Map the note to include notebookTitle for the editor
+      const noteForEditor = {
+        ...note,
+        notebookId: note.notebookId || 'default',
+        notebookTitle: 'My Notebook', // Default value, you might want to fetch actual notebook title
+      };
+      setEditingNote(noteForEditor);
+      setEditorVisible(true);
+    }
   };
 
   const openNoteEditor = () => {
+    setEditingNote(null); // Clear any editing note
     setEditorVisible(true);
   };
   
-  const closeNoteEditor = () => setEditorVisible(false);
+  const closeNoteEditor = () => {
+    setEditorVisible(false);
+    setEditingNote(null); // Clear editing note when closing
+  };
   
-  const handleSaveNote = async (newNote: {
+  const handleSaveNote = async (note: {
     id: string;
     title: string;
     content: string;
@@ -57,8 +79,15 @@ const NotesScreen = () => {
   }) => {
     setSaving(true);
     try {
-      // Add to notes array
-      setNotes(prevNotes => [newNote, ...prevNotes]);
+      if (editingNote) {
+        // Update existing note
+        setNotes(prevNotes => 
+          prevNotes.map(n => n.id === note.id ? note : n)
+        );
+      } else {
+        // Add new note
+        setNotes(prevNotes => [note, ...prevNotes]);
+      }
       
       // Close editor
       closeNoteEditor();
@@ -98,6 +127,7 @@ const NotesScreen = () => {
         onClose={closeNoteEditor}
         onSave={handleSaveNote}
         saving={saving}
+        editingNote={editingNote}
       />
     </View>
   );

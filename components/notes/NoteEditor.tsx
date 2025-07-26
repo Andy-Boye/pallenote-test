@@ -34,13 +34,22 @@ interface NoteEditorProps {
     date: string;
   }) => void;
   saving: boolean;
+  editingNote?: {
+    id: string;
+    title: string;
+    content: string;
+    notebookId: string;
+    notebookTitle: string;
+    date: string;
+  } | null;
 }
 
 const NoteEditor: React.FC<NoteEditorProps> = ({ 
   visible, 
   onClose, 
   onSave, 
-  saving 
+  saving,
+  editingNote = null
 }) => {
   const { colors } = useTheme();
   const [notebooks, setNotebooks] = useState<Notebook[]>([]);
@@ -83,12 +92,23 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     if (visible) fetchNotebooks();
   }, [visible]);
 
-  // Reset form when editor opens
+  // Reset form when editor opens or load existing note
   useEffect(() => {
     if (visible) {
-      setNoteTitle("");
-      setNoteContent("");
-      setSelectedNotebook({ id: 'default', title: 'My Notebook' });
+      if (editingNote) {
+        // Load existing note data
+        setNoteTitle(editingNote.title);
+        setNoteContent(editingNote.content);
+        setSelectedNotebook({ 
+          id: editingNote.notebookId, 
+          title: editingNote.notebookTitle 
+        });
+      } else {
+        // Reset for new note
+        setNoteTitle("");
+        setNoteContent("");
+        setSelectedNotebook({ id: 'default', title: 'My Notebook' });
+      }
       setFormatState({
         bold: false,
         italic: false,
@@ -97,7 +117,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         alignment: 'left',
       });
     }
-  }, [visible]);
+  }, [visible, editingNote]);
 
   // Update format state when editor becomes visible
   useEffect(() => {
@@ -111,16 +131,16 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
       return;
     }
     
-    const newNote = {
-      id: Date.now().toString(),
+    const note = {
+      id: editingNote?.id || Date.now().toString(),
       title: noteTitle.trim(),
       content: noteContent.trim(),
       notebookId: selectedNotebook?.id || 'default',
       notebookTitle: selectedNotebook?.title || 'My Notebook',
-      date: new Date().toLocaleDateString(),
+      date: editingNote?.date || new Date().toLocaleDateString(),
     };
     
-    onSave(newNote);
+    onSave(note);
   };
 
   // Formatting functions
