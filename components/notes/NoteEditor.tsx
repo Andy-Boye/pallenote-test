@@ -6,6 +6,7 @@ import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Keyboard,
   Modal,
   Pressable,
@@ -31,6 +32,7 @@ interface NoteEditorProps {
     notebookTitle: string;
     date: string;
   }) => void;
+  onDelete?: (noteId: string) => void;
   saving: boolean;
   editingNote?: {
     id: string;
@@ -46,6 +48,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
   visible, 
   onClose, 
   onSave, 
+  onDelete,
   saving,
   editingNote = null
 }) => {
@@ -69,6 +72,11 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     alignment: 'left' as 'left' | 'center' | 'right',
   });
   const [showFontFamilyPicker, setShowFontFamilyPicker] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const [showSearchBar, setShowSearchBar] = useState(false);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [searchResults, setSearchResults] = useState<number[]>([]);
+  const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
 
   // Keyboard listeners
   useEffect(() => {
@@ -242,6 +250,62 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     setTimeout(updateFormatState, 50);
   };
 
+  // Search functionality
+  const handleSearch = (text: string) => {
+    setSearchText(text);
+    if (!text.trim()) {
+      setSearchResults([]);
+      setCurrentSearchIndex(0);
+      return;
+    }
+    
+    // Simple text search in note content (case insensitive)
+    const content = noteContent.toLowerCase();
+    const searchTerm = text.toLowerCase();
+    const results: number[] = [];
+    let index = content.indexOf(searchTerm);
+    
+    while (index !== -1) {
+      results.push(index);
+      index = content.indexOf(searchTerm, index + 1);
+    }
+    
+    setSearchResults(results);
+    setCurrentSearchIndex(0);
+  };
+
+  const handleNextSearch = () => {
+    if (searchResults.length > 0) {
+      setCurrentSearchIndex((prev) => (prev + 1) % searchResults.length);
+    }
+  };
+
+  const handlePreviousSearch = () => {
+    if (searchResults.length > 0) {
+      setCurrentSearchIndex((prev) => (prev - 1 + searchResults.length) % searchResults.length);
+    }
+  };
+
+  const handleDeleteNote = () => {
+    Alert.alert(
+      "Delete Note",
+      "Are you sure you want to delete this note? This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive",
+          onPress: () => {
+            if (editingNote && onDelete) {
+              onDelete(editingNote.id);
+            }
+            onClose();
+          }
+        }
+      ]
+    );
+  };
+
   return (
     <Modal
       visible={visible}
@@ -251,33 +315,110 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     >
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
         {/* Top Bar */}
-        <View style={[styles.topBar, { borderBottomColor: colors.border }]}>
-          <Pressable onPress={onClose} hitSlop={10} style={styles.topBarButton}>
-            <Ionicons name="arrow-back" size={26} color={colors.text} />
-          </Pressable>
-          
-          <View style={styles.topBarActions}>
-            <Pressable hitSlop={10} style={styles.topBarButton}>
-              <MaterialCommunityIcons name="undo-variant" size={24} color={colors.textSecondary} />
+        {showSearchBar ? (
+          // Search Bar
+          <View style={[styles.searchBar, { borderBottomColor: colors.border }]}>
+            <Pressable onPress={() => setShowSearchBar(false)} hitSlop={10} style={styles.searchBarButton}>
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
             </Pressable>
-            <Pressable hitSlop={10} style={styles.topBarButton}>
-              <MaterialCommunityIcons name="redo-variant" size={24} color={colors.textSecondary} />
-            </Pressable>
-            <Pressable hitSlop={10} style={styles.topBarButton}>
-              <Feather name="share" size={22} color={colors.textSecondary} />
-            </Pressable>
-            <Pressable onPress={handleSave} hitSlop={10} style={styles.topBarButton} disabled={saving}>
-              {saving ? (
-                <ActivityIndicator size="small" color={colors.primary} />
-              ) : (
-                <Ionicons name="checkmark" size={24} color={colors.primary} />
+            
+            <View style={styles.searchInputContainer}>
+              <TextInput
+                style={[styles.searchInput, { color: colors.text, backgroundColor: colors.surface }]}
+                placeholder="Find in note"
+                placeholderTextColor={colors.textSecondary}
+                value={searchText}
+                onChangeText={handleSearch}
+                autoFocus
+              />
+            </View>
+            
+            <View style={styles.searchActions}>
+              {searchResults.length > 0 && (
+                <>
+                  <Text style={[styles.searchResultsText, { color: colors.textSecondary }]}>
+                    {currentSearchIndex + 1}/{searchResults.length}
+                  </Text>
+                  <Pressable onPress={handlePreviousSearch} hitSlop={10} style={styles.searchBarButton}>
+                    <Ionicons name="chevron-up" size={20} color={colors.primary} />
+                  </Pressable>
+                  <Pressable onPress={handleNextSearch} hitSlop={10} style={styles.searchBarButton}>
+                    <Ionicons name="chevron-down" size={20} color={colors.primary} />
+                  </Pressable>
+                </>
               )}
-            </Pressable>
-            <Pressable hitSlop={10} style={styles.topBarButton}>
-              <Ionicons name="ellipsis-vertical" size={22} color={colors.textSecondary} />
-            </Pressable>
+              <Pressable onPress={() => setShowSearchBar(false)} hitSlop={10} style={styles.searchBarButton}>
+                <Text style={[styles.cancelButton, { color: colors.primary }]}>Cancel</Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
+        ) : (
+          // Normal Top Bar
+          <View style={[styles.topBar, { borderBottomColor: colors.border }]}>
+            <Pressable onPress={onClose} hitSlop={10} style={styles.topBarButton}>
+              <Ionicons name="arrow-back" size={26} color={colors.text} />
+            </Pressable>
+            
+            <View style={styles.topBarActions}>
+              <Pressable hitSlop={10} style={styles.topBarButton}>
+                <MaterialCommunityIcons name="undo-variant" size={24} color={colors.textSecondary} />
+              </Pressable>
+              <Pressable hitSlop={10} style={styles.topBarButton}>
+                <MaterialCommunityIcons name="redo-variant" size={24} color={colors.textSecondary} />
+              </Pressable>
+              <Pressable hitSlop={10} style={styles.topBarButton}>
+                <Feather name="share" size={22} color={colors.textSecondary} />
+              </Pressable>
+              <Pressable onPress={handleSave} hitSlop={10} style={styles.topBarButton} disabled={saving}>
+                {saving ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <Ionicons name="checkmark" size={24} color={colors.primary} />
+                )}
+              </Pressable>
+              <Pressable onPress={() => setShowOptionsMenu(true)} hitSlop={10} style={styles.topBarButton}>
+                <Ionicons name="ellipsis-vertical" size={22} color={colors.textSecondary} />
+              </Pressable>
+            </View>
+          </View>
+        )}
+
+        {/* Options Menu Modal */}
+        <Modal
+          visible={showOptionsMenu}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowOptionsMenu(false)}
+        >
+          <Pressable 
+            style={styles.dropdownOverlay} 
+            onPress={() => setShowOptionsMenu(false)}
+          >
+            <View style={[styles.optionsMenu, { backgroundColor: colors.surface }]}>
+              <Pressable
+                onPress={() => {
+                  setShowOptionsMenu(false);
+                  setShowSearchBar(true);
+                }}
+                style={styles.optionsMenuItem}
+              >
+                <Ionicons name="search" size={20} color={colors.primary} style={{ marginRight: 12 }} />
+                <Text style={{ color: colors.text, fontSize: 16 }}>Find in note</Text>
+              </Pressable>
+              
+              <Pressable
+                onPress={() => {
+                  setShowOptionsMenu(false);
+                  handleDeleteNote();
+                }}
+                style={styles.optionsMenuItem}
+              >
+                <Ionicons name="trash-outline" size={20} color={colors.error} style={{ marginRight: 12 }} />
+                <Text style={{ color: colors.error, fontSize: 16 }}>Delete note</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Modal>
 
         {/* Notebook Selector */}
         <Pressable
@@ -364,7 +505,9 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
             </View>
             <View style={{ flex: 1 }}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Pressable onPress={() => {}} style={styles.insertButton}><Feather name="check-square" size={22} color={colors.primary} /></Pressable>
+                <Pressable onPress={() => {
+                  pellEditorRef.current?.insertHTML?.('<input type="checkbox" style="width:18px;height:18px;vertical-align:middle;margin-right:4px;" />');
+                }} style={styles.insertButton}><Feather name="check-square" size={22} color={colors.primary} /></Pressable>
                 <Pressable onPress={() => {}} style={styles.insertButton}><Feather name="calendar" size={22} color={colors.primary} /></Pressable>
                 <Pressable onPress={() => {}} style={styles.insertButton}><Feather name="camera" size={22} color={colors.primary} /></Pressable>
                 <Pressable onPress={() => {}} style={styles.insertButton}><MaterialCommunityIcons name="table" size={22} color={colors.primary} /></Pressable>
@@ -460,6 +603,54 @@ const styles = StyleSheet.create({
     padding: 6,
     marginHorizontal: 1,
     borderRadius: 6,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+  },
+  searchBarButton: {
+    padding: 6,
+  },
+  searchInputContainer: {
+    flex: 1,
+    marginHorizontal: 10,
+  },
+  searchInput: {
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    fontSize: 16,
+  },
+  searchActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  searchResultsText: {
+    fontSize: 14,
+    marginRight: 10,
+  },
+  cancelButton: {
+    fontSize: 16,
+  },
+  optionsMenu: {
+    position: 'absolute',
+    top: 70,
+    left: 20,
+    right: 20,
+    borderRadius: 12,
+    paddingVertical: 8,
+    elevation: 8,
+  },
+  optionsMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
 });
 

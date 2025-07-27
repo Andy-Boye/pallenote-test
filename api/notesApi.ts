@@ -94,3 +94,25 @@ export const searchNotes = async (query: string): Promise<Note[]> => {
     throw error
   }
 }
+
+export const moveNotesToNotebook = async (fromNotebookId: string, toNotebookId: string): Promise<void> => {
+  try {
+    await apiClient.put(`/notes/move`, {
+      fromNotebookId,
+      toNotebookId
+    })
+  } catch (error) {
+    console.error("Move notes error:", error)
+    // For mock data, we'll handle this in the notebooks API
+    throw error
+  }
+}
+
+export const deleteNotesByNotebookId = async (notebookId: string): Promise<void> => {
+  try {
+    await apiClient.delete(`/notes/notebook/${notebookId}`)
+  } catch (error) {
+    console.error("Delete notes by notebook error:", error)
+    throw error
+  }
+}

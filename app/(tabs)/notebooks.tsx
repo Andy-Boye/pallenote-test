@@ -1,15 +1,16 @@
 "use client"
 
-import { getNotebooks } from "@/api/notebooksApi";
-import { getNotes } from "@/api/notesApi";
+import { deleteNotebook, deleteNotebookAndContents, getNotebooks, moveNotesToDefaultNotebook, updateNotebook } from "@/api/notebooksApi";
+import { deleteNotesByNotebookId, getNotes } from "@/api/notesApi";
 import type { Note, Notebook } from "@/api/types";
 import CreateNotebookModal from "@/components/CreateNotebookModal";
+import NotebookActionModal from "@/components/NotebookActionModal";
 import SearchBar from "@/components/SearchBar";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, RefreshControl, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DarkGradientBackground from '../../components/DarkGradientBackground';
 
@@ -24,6 +25,8 @@ const NotebooksScreen = () => {
   const [refreshing, setRefreshing] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showActionModal, setShowActionModal] = useState(false)
+  const [selectedNotebook, setSelectedNotebook] = useState<Notebook | null>(null)
   const insets = useSafeAreaInsets();
 
   const fetchData = useCallback(async (isRefresh = false) => {
@@ -95,6 +98,79 @@ const NotebooksScreen = () => {
     setNotebooks(prev => [...prev, newNotebook])
   }
 
+  const handleLongPress = (notebook: Notebook) => {
+    console.log('Long press on notebook:', notebook);
+    setSelectedNotebook(notebook);
+    setShowActionModal(true);
+  };
+
+  const handleRenameNotebook = async (notebookId: string, newTitle: string) => {
+    try {
+      await updateNotebook(notebookId, { title: newTitle });
+      setNotebooks(prev => 
+        prev.map(notebook => 
+          notebook.id === notebookId 
+            ? { ...notebook, title: newTitle }
+            : notebook
+        )
+      );
+    } catch (error) {
+      console.error('Error renaming notebook:', error);
+      throw error;
+    }
+  };
+
+  const handleShareNotebook = (notebook: Notebook) => {
+    Share.share({
+      message: `Check out my notebook: ${notebook.title}`,
+      title: notebook.title,
+    });
+  };
+
+  const handleDeleteNotebookOnly = async (notebookId: string) => {
+    try {
+      // Move notes to default notebook first
+      await moveNotesToDefaultNotebook(notebookId);
+      
+      // Then delete the notebook
+      await deleteNotebook(notebookId);
+      
+      // Update local state
+      setNotebooks(prev => prev.filter(notebook => notebook.id !== notebookId));
+      
+      // Refresh notes to show them in default notebook
+      const updatedNotes = await getNotes();
+      setNotes(updatedNotes);
+      
+      Alert.alert('Success', 'Notebook deleted. All notes have been moved to "My Notebook".');
+    } catch (error) {
+      console.error('Error deleting notebook:', error);
+      throw error;
+    }
+  };
+
+  const handleDeleteNotebookAndContents = async (notebookId: string) => {
+    try {
+      // Delete all notes in the notebook
+      await deleteNotesByNotebookId(notebookId);
+      
+      // Delete the notebook
+      await deleteNotebookAndContents(notebookId);
+      
+      // Update local state
+      setNotebooks(prev => prev.filter(notebook => notebook.id !== notebookId));
+      
+      // Refresh notes
+      const updatedNotes = await getNotes();
+      setNotes(updatedNotes);
+      
+      Alert.alert('Success', 'Notebook and all its notes have been deleted.');
+    } catch (error) {
+      console.error('Error deleting notebook and contents:', error);
+      throw error;
+    }
+  };
+
   const totalNotebooks = notebooks.length;
 
   // Filter notebooks based on search query
@@ -158,8 +234,10 @@ const NotebooksScreen = () => {
           return (
             <TouchableOpacity 
               onPress={() => openNotebook(item)}
+              onLongPress={() => handleLongPress(item)}
               style={[styles.notebookCard, { backgroundColor: colors.surface }]}
               activeOpacity={0.8}
+              delayLongPress={500}
             >
 
               
@@ -178,7 +256,12 @@ const NotebooksScreen = () => {
                     </View>
                   </View>
                 </View>
-
+                <TouchableOpacity 
+                  style={styles.moreButton}
+                  onPress={() => handleLongPress(item)}
+                >
+                  <Ionicons name="ellipsis-vertical" size={16} color={colors.textSecondary} />
+                </TouchableOpacity>
               </View>
               
               {/* Show preview of recent notes */}
@@ -217,6 +300,13 @@ const NotebooksScreen = () => {
                   </Text>
                 </View>
               )}
+              
+              {/* Long press hint */}
+              <View style={styles.longPressHint}>
+                <Text style={[styles.hintText, { color: colors.textSecondary }]}>
+                  Long press for more options
+                </Text>
+              </View>
             </TouchableOpacity>
           );
         }}
@@ -252,6 +342,20 @@ const NotebooksScreen = () => {
         visible={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onNotebookCreated={handleNotebookCreated}
+      />
+
+      {/* Notebook Action Modal */}
+      <NotebookActionModal
+        visible={showActionModal}
+        onClose={() => {
+          setShowActionModal(false);
+          setSelectedNotebook(null);
+        }}
+        notebook={selectedNotebook}
+        onRename={handleRenameNotebook}
+        onShare={handleShareNotebook}
+        onDeleteNotebookOnly={handleDeleteNotebookOnly}
+        onDeleteNotebookAndContents={handleDeleteNotebookAndContents}
       />
     </DarkGradientBackground>
   )
@@ -350,6 +454,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginLeft: 12,
   },
+  moreButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
   notesPreviewContainer: {
     marginTop: 4,
   },
@@ -402,6 +514,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     marginTop: 8,
+  },
+  longPressHint: {
+    alignItems: 'center',
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  hintText: {
+    fontSize: 11,
+    fontWeight: '400',
+    fontStyle: 'italic',
   },
   floatingAddButton: {
     position: 'absolute',
