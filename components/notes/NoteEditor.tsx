@@ -1,15 +1,13 @@
 import { getNotebooks } from '@/api/notebooksApi';
 import type { Notebook } from '@/api/types';
-import RichTextEditor from '@/components/RichTextEditor';
+import { RichTextEditor } from '@/components/RichTextEditor';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Keyboard,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   SafeAreaView,
   StyleSheet,
@@ -341,10 +339,10 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
             ref={richTextEditorRef}
             value={noteContent}
             onValueChange={setNoteContent}
-            minHeight={120}
+            // minHeight={120} // Remove minHeight to allow full expansion
             placeholder="Start writing..."
             placeholderTextColor={colors.textSecondary}
-            style={{ color: colors.text }}
+            style={{ flex: 1, color: colors.text }} // Make editor expand
             onFocus={() => setEditorFocused(true)}
             onBlur={() => setEditorFocused(false)}
           />
@@ -444,7 +442,7 @@ const styles = StyleSheet.create({
   contentContainer: {
     marginHorizontal: 20,
     marginBottom: 8,
-    minHeight: 120,
+    flex: 1, // Make the container expand to fill available space
   },
   toolbarContainer: {
     position: 'absolute',
