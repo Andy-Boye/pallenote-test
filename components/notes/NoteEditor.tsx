@@ -18,6 +18,7 @@ import {
   View
 } from 'react-native';
 import { RichToolbar, actions } from 'react-native-pell-rich-editor';
+import { RichToolbar, actions } from 'react-native-pell-rich-editor';
 
 
 
@@ -72,11 +73,6 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     alignment: 'left' as 'left' | 'center' | 'right',
   });
   const [showFontFamilyPicker, setShowFontFamilyPicker] = useState(false);
-  const [searchText, setSearchText] = useState("");
-  const [showSearchBar, setShowSearchBar] = useState(false);
-  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
-  const [searchResults, setSearchResults] = useState<number[]>([]);
-  const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
 
   // Keyboard listeners
   useEffect(() => {
@@ -103,6 +99,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
 
   // Function to update format state from RichTextEditor
   const updateFormatState = () => {
+    const currentFormatState = pellEditorRef.current?.getFormatState?.();
     const currentFormatState = pellEditorRef.current?.getFormatState?.();
     if (currentFormatState) {
       setFormatState(currentFormatState);
@@ -217,35 +214,42 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
   // Formatting functions
   const toggleBold = () => {
     pellEditorRef.current?.toggleBold();
+    pellEditorRef.current?.toggleBold();
     setTimeout(updateFormatState, 50);
   };
 
   const toggleItalic = () => {
+    pellEditorRef.current?.toggleItalic();
     pellEditorRef.current?.toggleItalic();
     setTimeout(updateFormatState, 50);
   };
 
   const toggleUnderline = () => {
     pellEditorRef.current?.toggleUnderline();
+    pellEditorRef.current?.toggleUnderline();
     setTimeout(updateFormatState, 50);
   };
 
   const toggleStrikethrough = () => {
+    pellEditorRef.current?.toggleStrikethrough();
     pellEditorRef.current?.toggleStrikethrough();
     setTimeout(updateFormatState, 50);
   };
 
   const setAlignmentLeft = () => {
     pellEditorRef.current?.setAlignment('left');
+    pellEditorRef.current?.setAlignment('left');
     setTimeout(updateFormatState, 50);
   };
 
   const setAlignmentCenter = () => {
     pellEditorRef.current?.setAlignment('center');
+    pellEditorRef.current?.setAlignment('center');
     setTimeout(updateFormatState, 50);
   };
 
   const setAlignmentRight = () => {
+    pellEditorRef.current?.setAlignment('right');
     pellEditorRef.current?.setAlignment('right');
     setTimeout(updateFormatState, 50);
   };
@@ -478,10 +482,12 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         <View style={styles.contentContainer}>
           <RichTextEditor
             pellEditorRef={pellEditorRef}
+            pellEditorRef={pellEditorRef}
             value={noteContent}
             onValueChange={setNoteContent}
             placeholder="Start writing..."
             placeholderTextColor={colors.textSecondary}
+            style={{ flex: 1, color: colors.text }}
             style={{ flex: 1, color: colors.text }}
             onFocus={() => setEditorFocused(true)}
             onBlur={() => setEditorFocused(false)}
@@ -505,9 +511,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
             </View>
             <View style={{ flex: 1 }}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Pressable onPress={() => {
-                  pellEditorRef.current?.insertHTML?.('<input type="checkbox" style="width:18px;height:18px;vertical-align:middle;margin-right:4px;" />');
-                }} style={styles.insertButton}><Feather name="check-square" size={22} color={colors.primary} /></Pressable>
+                <Pressable onPress={() => {}} style={styles.insertButton}><Feather name="check-square" size={22} color={colors.primary} /></Pressable>
                 <Pressable onPress={() => {}} style={styles.insertButton}><Feather name="calendar" size={22} color={colors.primary} /></Pressable>
                 <Pressable onPress={() => {}} style={styles.insertButton}><Feather name="camera" size={22} color={colors.primary} /></Pressable>
                 <Pressable onPress={() => {}} style={styles.insertButton}><MaterialCommunityIcons name="table" size={22} color={colors.primary} /></Pressable>
@@ -590,6 +594,8 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: undefined, // will be set by RichToolbar or parent
     paddingHorizontal: 10,
+    backgroundColor: undefined, // will be set by RichToolbar or parent
+    paddingHorizontal: 10,
     paddingBottom: 10,
     zIndex: 20,
     borderTopWidth: 1,
@@ -603,54 +609,6 @@ const styles = StyleSheet.create({
     padding: 6,
     marginHorizontal: 1,
     borderRadius: 6,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-  },
-  searchBarButton: {
-    padding: 6,
-  },
-  searchInputContainer: {
-    flex: 1,
-    marginHorizontal: 10,
-  },
-  searchInput: {
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    fontSize: 16,
-  },
-  searchActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  searchResultsText: {
-    fontSize: 14,
-    marginRight: 10,
-  },
-  cancelButton: {
-    fontSize: 16,
-  },
-  optionsMenu: {
-    position: 'absolute',
-    top: 70,
-    left: 20,
-    right: 20,
-    borderRadius: 12,
-    paddingVertical: 8,
-    elevation: 8,
-  },
-  optionsMenuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
   },
 });
 
