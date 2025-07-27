@@ -10,13 +10,14 @@ import {
 } from "@/components/notes";
 import SearchBar from "@/components/SearchBar";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 const NotesScreen = () => {
   const router = useRouter();
   const { colors } = useTheme();
+  const { openFab } = useLocalSearchParams<{ openFab?: string }>();
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
@@ -44,6 +45,17 @@ const NotesScreen = () => {
     };
     fetchNotes();
   }, []);
+
+  // Auto-open FAB if parameter is present
+  useEffect(() => {
+    if (openFab === 'true') {
+      // Small delay to ensure screen is fully loaded
+      const timer = setTimeout(() => {
+        openNoteEditor();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [openFab]);
 
   const openNote = (noteId: string) => {
     const note = notes.find(n => n.id === noteId);

@@ -6,7 +6,7 @@ import TaskItem from "@/components/TaskItem";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
     ActivityIndicator,
@@ -33,6 +33,7 @@ type Task = {
 const TasksScreen = () => {
   const { colors } = useTheme();
   const router = useRouter();
+  const { openFab } = useLocalSearchParams<{ openFab?: string }>();
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,6 +85,16 @@ const TasksScreen = () => {
 
     fetchTasks();
   }, []);
+
+  // Auto-open FAB if parameter is present
+  useEffect(() => {
+    if (openFab === 'true') {
+      const timer = setTimeout(() => {
+        openAddModal();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [openFab]);
 
   const handleTaskPress = (id: string) => {
     const task = tasks.find(t => t.id === id);

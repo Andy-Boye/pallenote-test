@@ -4,12 +4,13 @@ import { useTheme } from "@/contexts/ThemeContext"
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import { useState } from "react"
-import { Animated, Pressable, View } from "react-native"
+import { Animated, Pressable, View, Text } from "react-native"
 
 const FloatingActionButton = () => {
   const { colors } = useTheme()
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
+  const [showShortcutOptions, setShowShortcutOptions] = useState(false)
   const [animation] = useState(new Animated.Value(0))
 
   const toggleMenu = () => {
@@ -31,13 +32,38 @@ const FloatingActionButton = () => {
 
     switch (action) {
       case "note":
-        router.push("/notes/new")
+        router.push("/(tabs)/notes?openFab=true")
         break
       case "task":
-        router.push("/tasks/new")
+        router.push("/(tabs)/tasks?openFab=true")
         break
       case "recording":
         router.push("/recording")
+        break
+      case "shortcut":
+        setShowShortcutOptions(true)
+        break
+    }
+  }
+
+  const handleShortcutAction = (shortcutType: string) => {
+    setShowShortcutOptions(false)
+    switch (shortcutType) {
+      case "reminder":
+        // TODO: Navigate to reminder creation
+        alert("Reminder feature coming soon!")
+        break
+      case "event":
+        // TODO: Navigate to event creation
+        alert("Event feature coming soon!")
+        break
+      case "goal":
+        // TODO: Navigate to goal creation
+        alert("Goal feature coming soon!")
+        break
+      case "habit":
+        // TODO: Navigate to habit creation
+        alert("Habit tracker coming soon!")
         break
     }
   }
@@ -95,12 +121,106 @@ const FloatingActionButton = () => {
               <Ionicons name="mic" size={22} color="#fff" />
             </Pressable>
             <Pressable
-              onPress={() => alert('Add Shortcut pressed!')}
+              onPress={() => handleAction('shortcut')}
               style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}
             >
               <Ionicons name="add-circle" size={22} color="#fff" />
             </Pressable>
           </View>
+        </Animated.View>
+      )}
+      {/* Shortcut Options Modal */}
+      {showShortcutOptions && (
+        <Animated.View
+          style={{
+            marginBottom: 14,
+            width: 200,
+            borderRadius: 16,
+            backgroundColor: colors.surface,
+            padding: 16,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.15,
+            shadowRadius: 8,
+            elevation: 8,
+            opacity: 1,
+            transform: [{ translateY: 0 }],
+          }}
+        >
+          <Text style={{ color: colors.text, fontSize: 16, fontWeight: '600', marginBottom: 12, textAlign: 'center' }}>
+            Add Shortcut
+          </Text>
+          <View style={{ gap: 8 }}>
+            <Pressable
+              onPress={() => handleShortcutAction('reminder')}
+              style={{ 
+                flexDirection: 'row', 
+                alignItems: 'center', 
+                paddingVertical: 10, 
+                paddingHorizontal: 12, 
+                borderRadius: 8,
+                backgroundColor: colors.background
+              }}
+            >
+              <Ionicons name="alarm" size={18} color={colors.primary} style={{ marginRight: 10 }} />
+              <Text style={{ color: colors.text, fontSize: 14, fontWeight: '500' }}>Reminder</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => handleShortcutAction('event')}
+              style={{ 
+                flexDirection: 'row', 
+                alignItems: 'center', 
+                paddingVertical: 10, 
+                paddingHorizontal: 12, 
+                borderRadius: 8,
+                backgroundColor: colors.background
+              }}
+            >
+              <Ionicons name="calendar" size={18} color={colors.success} style={{ marginRight: 10 }} />
+              <Text style={{ color: colors.text, fontSize: 14, fontWeight: '500' }}>Event</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => handleShortcutAction('goal')}
+              style={{ 
+                flexDirection: 'row', 
+                alignItems: 'center', 
+                paddingVertical: 10, 
+                paddingHorizontal: 12, 
+                borderRadius: 8,
+                backgroundColor: colors.background
+              }}
+            >
+              <Ionicons name="trophy" size={18} color={colors.warning} style={{ marginRight: 10 }} />
+              <Text style={{ color: colors.text, fontSize: 14, fontWeight: '500' }}>Goal</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => handleShortcutAction('habit')}
+              style={{ 
+                flexDirection: 'row', 
+                alignItems: 'center', 
+                paddingVertical: 10, 
+                paddingHorizontal: 12, 
+                borderRadius: 8,
+                backgroundColor: colors.background
+              }}
+            >
+              <Ionicons name="repeat" size={18} color={colors.error} style={{ marginRight: 10 }} />
+              <Text style={{ color: colors.text, fontSize: 14, fontWeight: '500' }}>Habit</Text>
+            </Pressable>
+          </View>
+          <Pressable
+            onPress={() => setShowShortcutOptions(false)}
+            style={{ 
+              marginTop: 12, 
+              paddingVertical: 8, 
+              alignItems: 'center',
+              borderTopWidth: 1,
+              borderTopColor: colors.border,
+              paddingTop: 8
+            }}
+          >
+            <Text style={{ color: colors.textSecondary, fontSize: 14 }}>Cancel</Text>
+          </Pressable>
         </Animated.View>
       )}
       {/* Main FAB */}

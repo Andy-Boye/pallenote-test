@@ -6,7 +6,10 @@ import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   SafeAreaView,
   StyleSheet,
@@ -58,6 +61,8 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
   const [showInsertPanel, setShowInsertPanel] = useState(false);
   const [showFormatPanel, setShowFormatPanel] = useState(false);
   const [editorFocused, setEditorFocused] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const richTextEditorRef = useRef<any>(null);
   const [formatState, setFormatState] = useState({
     bold: false,
@@ -66,6 +71,29 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     strikethrough: false,
     alignment: 'left' as 'left' | 'center' | 'right',
   });
+
+  // Keyboard listeners
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      (e) => {
+        setKeyboardVisible(true);
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => {
+        setKeyboardVisible(false);
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardDidShowListener?.remove();
+      keyboardDidHideListener?.remove();
+    };
+  }, []);
 
   // Function to update format state from RichTextEditor
   const updateFormatState = () => {
@@ -307,35 +335,42 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
           onBlur={() => setEditorFocused(false)}
         />
 
-                 {/* Content Input */}
-         <View style={styles.contentContainer}>
-           <RichTextEditor
-             ref={richTextEditorRef}
-             value={noteContent}
-             onValueChange={setNoteContent}
-             minHeight={120}
-             placeholder="Start writing..."
-             placeholderTextColor={colors.textSecondary}
-             style={{ color: colors.text }}
-             onFocus={() => setEditorFocused(true)}
-             onBlur={() => setEditorFocused(false)}
-           />
-         </View>
+        {/* Content Input */}
+        <View style={styles.contentContainer}>
+          <RichTextEditor
+            ref={richTextEditorRef}
+            value={noteContent}
+            onValueChange={setNoteContent}
+            minHeight={120}
+            placeholder="Start writing..."
+            placeholderTextColor={colors.textSecondary}
+            style={{ color: colors.text }}
+            onFocus={() => setEditorFocused(true)}
+            onBlur={() => setEditorFocused(false)}
+          />
+        </View>
 
-        {/* Editor Toolbar */}
-        <EditorToolbar
-          formatState={formatState}
-          onToggleBold={toggleBold}
-          onToggleItalic={toggleItalic}
-          onToggleUnderline={toggleUnderline}
-          onToggleStrikethrough={toggleStrikethrough}
-          onSetAlignmentLeft={setAlignmentLeft}
-          onSetAlignmentCenter={setAlignmentCenter}
-          onSetAlignmentRight={setAlignmentRight}
-          onShowInsertPanel={() => setShowInsertPanel(true)}
-          onShowFormatPanel={() => setShowFormatPanel(true)}
-          editorFocused={editorFocused}
-        />
+        {/* Editor Toolbar - Moves with keyboard */}
+        <View style={[
+          styles.toolbarContainer, 
+          { 
+            bottom: keyboardVisible ? keyboardHeight : 0 
+          }
+        ]}>
+          <EditorToolbar
+            formatState={formatState}
+            onToggleBold={toggleBold}
+            onToggleItalic={toggleItalic}
+            onToggleUnderline={toggleUnderline}
+            onToggleStrikethrough={toggleStrikethrough}
+            onSetAlignmentLeft={setAlignmentLeft}
+            onSetAlignmentCenter={setAlignmentCenter}
+            onSetAlignmentRight={setAlignmentRight}
+            onShowInsertPanel={() => setShowInsertPanel(true)}
+            onShowFormatPanel={() => setShowFormatPanel(true)}
+            editorFocused={editorFocused}
+          />
+        </View>
 
         {/* Insert Panel */}
         <InsertPanel
@@ -410,6 +445,16 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 8,
     minHeight: 120,
+  },
+  toolbarContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'transparent',
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+    zIndex: 10,
   },
 });
 

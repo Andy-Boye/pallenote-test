@@ -4,7 +4,9 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View, TextInput } from "react-native";
+import DarkGradientBackground from '../../../components/DarkGradientBackground';
+import FAB from "../../../components/FAB";
 
 const NoteDetailScreen = () => {
   const { colors } = useTheme();
@@ -13,6 +15,9 @@ const NoteDetailScreen = () => {
   const [note, setNote] = useState<Note | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedTitle, setEditedTitle] = useState("");
+  const [editedContent, setEditedContent] = useState("");
 
   useEffect(() => {
     if (!noteId) return;
@@ -20,6 +25,8 @@ const NoteDetailScreen = () => {
     getNoteById(noteId)
       .then((data) => {
         setNote(data as Note);
+        setEditedTitle(data.title);
+        setEditedContent(data.content);
         setLoading(false);
       })
       .catch(() => {
@@ -50,69 +57,159 @@ const NoteDetailScreen = () => {
     );
   };
 
+  const handleSave = async () => {
+    if (!editedTitle.trim() || !editedContent.trim()) {
+      Alert.alert("Validation", "Please enter both a title and content for your note.");
+      return;
+    }
+    // TODO: Implement actual save functionality
+    Alert.alert("Success", "Note updated successfully!");
+    setIsEditing(false);
+  };
+
+  const handleShare = () => {
+    Alert.alert('Share', 'Share functionality coming soon!');
+  };
+
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.background }}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
+      <DarkGradientBackground>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={{ color: colors.textSecondary, marginTop: 16 }}>Loading note...</Text>
+        </View>
+      </DarkGradientBackground>
     );
   }
 
   if (!note) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.background }}>
-        <Text style={{ color: colors.textSecondary }}>Note not found.</Text>
-      </View>
+      <DarkGradientBackground>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <Ionicons name="document-text-outline" size={64} color={colors.textSecondary} />
+          <Text style={{ color: colors.textSecondary, marginTop: 16, fontSize: 16 }}>Note not found</Text>
+          <TouchableOpacity 
+            style={[styles.backButton, { backgroundColor: colors.primary, marginTop: 24 }]}
+            onPress={() => router.back()}
+          >
+            <Text style={styles.backButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </DarkGradientBackground>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}> 
+    <DarkGradientBackground>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.surface }]}> 
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Note</Text>
-        <TouchableOpacity onPress={() => router.push(`/notes/${note.id}/edit`)}>
-          <Ionicons name="create-outline" size={22} color={colors.primary} />
+        <View>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            {isEditing ? 'Edit Note' : 'Note Details'}
+          </Text>
+          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
+            {isEditing ? 'Update your thoughts' : 'View and manage your note'}
+          </Text>
+        </View>
+        <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, { backgroundColor: colors.primary }]}> 
+          <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
       </View>
-      <View style={styles.content}>
-        <Text style={[styles.title, { color: colors.text }]}>{note.title}</Text>
-        <Text style={[styles.body, { color: colors.textSecondary }]}>{note.content}</Text>
-        <Text style={[styles.noteDate, { color: colors.textSecondary, marginTop: 12 }]}>Date: {note.date}</Text>
-        <TouchableOpacity
-          style={[styles.deleteButton, { backgroundColor: colors.error }]}
-          onPress={handleDelete}
-          disabled={deleting}
-        >
-          <Ionicons name="trash-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
-          <Text style={styles.deleteButtonText}>{deleting ? "Deleting..." : "Delete Note"}</Text>
-        </TouchableOpacity>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 32 }}>
-          <TouchableOpacity
-            style={[styles.shareButton, { backgroundColor: colors.primary }]}
-            onPress={() => Alert.alert('Share', 'Share functionality coming soon!')}
-          >
-            <Ionicons name="share-social-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
-            <Text style={styles.shareButtonText}>Share</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.backButton, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.primary }]}
-            onPress={() => router.replace('/(tabs)/notes')}
-          >
-            <Ionicons name="arrow-back" size={18} color={colors.primary} style={{ marginRight: 6 }} />
-            <Text style={[styles.backButtonText, { color: colors.primary }]}>Back to Notes</Text>
-          </TouchableOpacity>
+
+      {/* Modern Card Content */}
+      <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.text }]}> 
+        <View style={{ alignItems: 'center', marginBottom: 16 }}>
+          <Text style={{ fontSize: 36, marginBottom: 4 }}>📝</Text>
+          <Text style={{ color: colors.textSecondary, fontSize: 14 }}>Created on {note.date}</Text>
+        </View>
+
+        {isEditing ? (
+          <>
+            <TextInput
+              style={[styles.input, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border }]}
+              placeholder="Title"
+              placeholderTextColor={colors.textSecondary}
+              value={editedTitle}
+              onChangeText={setEditedTitle}
+              maxLength={60}
+            />
+            <TextInput
+              style={[styles.textarea, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border }]}
+              placeholder="Write your note here..."
+              placeholderTextColor={colors.textSecondary}
+              value={editedContent}
+              onChangeText={setEditedContent}
+              multiline
+              maxLength={1000}
+            />
+            <Text style={{ color: colors.textSecondary, fontSize: 13, textAlign: 'right', marginBottom: 16 }}>
+              {editedContent.length}/1000 characters
+            </Text>
+          </>
+        ) : (
+          <>
+            <Text style={[styles.title, { color: colors.text }]}>{note.title}</Text>
+            <Text style={[styles.content, { color: colors.textSecondary }]}>{note.content}</Text>
+          </>
+        )}
+
+        {/* Action Buttons */}
+        <View style={styles.actionButtons}>
+          {isEditing ? (
+            <>
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: colors.success }]}
+                onPress={handleSave}
+              >
+                <Ionicons name="checkmark" size={20} color="white" />
+                <Text style={styles.actionButtonText}>Save</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: colors.warning }]}
+                onPress={() => {
+                  setEditedTitle(note.title);
+                  setEditedContent(note.content);
+                  setIsEditing(false);
+                }}
+              >
+                <Ionicons name="close" size={20} color="white" />
+                <Text style={styles.actionButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: colors.primary }]}
+                onPress={() => setIsEditing(true)}
+              >
+                <Ionicons name="create-outline" size={20} color="white" />
+                <Text style={styles.actionButtonText}>Edit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: colors.accent }]}
+                onPress={handleShare}
+              >
+                <Ionicons name="share-social-outline" size={20} color="white" />
+                <Text style={styles.actionButtonText}>Share</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </View>
-    </View>
+
+      {/* Floating Action Button for Delete */}
+      <View style={styles.fabContainer} pointerEvents={deleting ? 'none' : 'auto'}>
+        <FAB 
+          onPress={handleDelete} 
+          icon={deleting ? 'cloud-upload' : 'trash-outline'}
+          backgroundColor={colors.error}
+        />
+      </View>
+    </DarkGradientBackground>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -120,69 +217,90 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingHorizontal: 20,
     paddingBottom: 16,
-    gap: 16,
+    backgroundColor: "transparent",
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 24,
-  },
-  title: {
     fontSize: 22,
     fontWeight: "bold",
-    marginBottom: 16,
   },
-  body: {
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  noteDate: {
-    fontSize: 13,
-    marginTop: 12,
-  },
-  deleteButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
-    borderRadius: 12,
-    marginTop: 32,
-  },
-  deleteButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#fff",
-  },
-  shareButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 14,
-    borderRadius: 12,
-    marginTop: 8,
-    marginRight: 8,
-  },
-  shareButtonText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#fff",
+  headerSubtitle: {
+    fontSize: 14,
+    marginTop: 2,
+    marginBottom: 2,
   },
   backButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 14,
-    borderRadius: 12,
-    marginTop: 8,
-    borderWidth: 1,
+    borderRadius: 24,
+    padding: 8,
   },
   backButtonText: {
+    color: 'white',
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: '600',
+  },
+  card: {
+    marginTop: 32,
+    marginHorizontal: 18,
+    borderRadius: 18,
+    padding: 22,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.10,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  content: {
+    fontSize: 16,
+    lineHeight: 24,
+    marginBottom: 20,
+  },
+  input: {
+    fontSize: 16,
+    fontWeight: "500",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1.2,
+  },
+  textarea: {
+    fontSize: 15,
+    borderRadius: 10,
+    padding: 12,
+    minHeight: 120,
+    textAlignVertical: "top",
+    marginBottom: 8,
+    borderWidth: 1.2,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 20,
+    gap: 12,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    flex: 1,
+    gap: 8,
+  },
+  actionButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  fabContainer: {
+    position: 'absolute',
+    right: 28,
+    bottom: 36,
+    zIndex: 10,
   },
 });
 

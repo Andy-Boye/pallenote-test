@@ -8,19 +8,21 @@ interface SearchBarProps {
   onChangeText: (text: string) => void;
   placeholder?: string;
   onClear?: () => void;
+  onSubmit?: () => void;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({
   value,
   onChangeText,
   placeholder = "Search...",
-  onClear
+  onClear,
+  onSubmit
 }) => {
   const { colors } = useTheme();
 
   return (
     <View style={styles.searchContainer}>
-      <View style={[styles.searchBar, { backgroundColor: colors.surface }]}>
+      <View style={[styles.searchBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
         <TextInput
           style={[styles.searchInput, { color: colors.text }]}
@@ -28,6 +30,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
           placeholderTextColor={colors.textSecondary}
           value={value}
           onChangeText={onChangeText}
+          onSubmitEditing={onSubmit}
+          returnKeyType="search"
         />
         {value.length > 0 && onClear && (
           <TouchableOpacity onPress={onClear} style={styles.clearButton}>
@@ -49,9 +53,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 4,
+    paddingVertical: 12,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.1)',
   },
   searchIcon: {
     marginRight: 12,
@@ -62,6 +65,7 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     marginLeft: 8,
+    padding: 4,
   },
 });
 

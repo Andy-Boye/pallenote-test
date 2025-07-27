@@ -40,7 +40,9 @@ export const RichTextEditor = React.forwardRef<any, RichTextEditorProps>(({
   });
 
   const getTextStyle = () => {
-    const styles: any = {};
+    const styles: any = {
+      color: style?.color || '#FFFFFF', // Ensure text color is applied
+    };
     if (formatState.bold) styles.fontWeight = 'bold';
     if (formatState.italic) styles.fontStyle = 'italic';
     if (formatState.underline) styles.textDecorationLine = 'underline';
@@ -72,7 +74,7 @@ export const RichTextEditor = React.forwardRef<any, RichTextEditorProps>(({
   }));
 
   return (
-    <View style={[styles.container, { minHeight }, style]}>
+    <View style={[styles.container, { minHeight }]}>
       <TextInput
         ref={inputRef}
         style={[styles.textInput, getTextStyle()]}
@@ -98,6 +100,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     padding: 0,
     textAlignVertical: 'top',
+    color: '#FFFFFF', // Default text color
   },
 });
 

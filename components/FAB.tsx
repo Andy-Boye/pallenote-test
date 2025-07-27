@@ -8,10 +8,11 @@ interface FABProps {
   onPress?: () => void
   icon?: string
   size?: number
-  color?: string // add color prop
+  color?: string
+  backgroundColor?: string
 }
 
-const FAB = ({ onPress, icon = "add", size = 26, color }: FABProps) => {
+const FAB = ({ onPress, icon = "add", size = 26, color, backgroundColor }: FABProps) => {
   const { colors } = useTheme()
 
   const handlePress = () => {
@@ -30,7 +31,7 @@ const FAB = ({ onPress, icon = "add", size = 26, color }: FABProps) => {
         width: 56,
         height: 56,
         borderRadius: 28,
-        backgroundColor: color || colors.primary, // use color prop if provided
+        backgroundColor: backgroundColor || color || colors.primary,
         alignItems: 'center',
         justifyContent: 'center',
         shadowColor: colors.text,

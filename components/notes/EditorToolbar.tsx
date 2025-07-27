@@ -48,19 +48,6 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({
           borderColor: colors.border,
           backgroundColor: colors.surface,
         },
-        editorFocused
-          ? {
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              bottom: 0,
-            }
-          : {
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              top: '70%',
-            },
       ]}
     >
       {/* Insertion Toolbar (left, horizontal scroll) */}
@@ -164,6 +151,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     minHeight: 48,
     zIndex: 20,
+    paddingVertical: 4,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   insertToolbar: {
     alignItems: 'center',
@@ -177,6 +171,7 @@ const styles = StyleSheet.create({
   },
   toolbarButton: {
     marginRight: 10,
+    padding: 4,
   },
   formatButton: {
     flexDirection: 'row',

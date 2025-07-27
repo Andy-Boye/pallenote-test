@@ -20,46 +20,103 @@ export const requestAudioPermissions = async (): Promise<boolean> => {
 
 export const startRecording = async (): Promise<Audio.Recording> => {
   try {
+    console.log('=== Starting Recording Process ===');
+    
+    // First, check and request permissions
     const hasPermission = await requestAudioPermissions()
     if (!hasPermission) {
       throw new Error("Microphone permission denied")
     }
+    console.log('✅ Permissions granted');
 
+    // AGGRESSIVE AUDIO SESSION RESET for Expo Go compatibility
+    console.log('🔄 Performing aggressive audio session reset...');
+    
+    // Step 1: Completely disable audio session
+    await Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
+      playsInSilentModeIOS: false,
+      staysActiveInBackground: false,
+      shouldDuckAndroid: false,
+      playThroughEarpieceAndroid: false,
+    })
+
+    // Step 2: Wait longer for session to clear completely
+    await new Promise(resolve => setTimeout(resolve, 500))
+    console.log('✅ Audio session reset complete');
+
+    // Configure audio mode for recording
+    console.log('🎤 Configuring audio mode for recording...');
     await Audio.setAudioModeAsync({
       allowsRecordingIOS: true,
       playsInSilentModeIOS: true,
       staysActiveInBackground: true,
+      interruptionModeIOS: 1, // DO_NOT_MIX
+      interruptionModeAndroid: 1, // DO_NOT_MIX
+      shouldDuckAndroid: true,
+      playThroughEarpieceAndroid: false,
     })
+    console.log('✅ Audio mode configured');
 
+    // Create new recording instance
+    console.log('📱 Creating recording instance...');
     const recording = new Audio.Recording()
-    const recordingOptions = {
+    
+    // Use ultra-conservative recording options for Expo Go compatibility
+    const recordingOptions: Audio.RecordingOptions = {
       android: {
         extension: ".m4a",
-        outputFormat: 2, // MediaRecorder.OutputFormat.MPEG_4
-        audioEncoder: 3, // MediaRecorder.AudioEncoder.AAC
-        sampleRate: 44100,
-        numberOfChannels: 2,
-        bitRate: 128000,
+        outputFormat: 2, // MPEG_4
+        audioEncoder: 3, // AAC
+        sampleRate: 22050, // Lower sample rate for better compatibility
+        numberOfChannels: 1, // Mono for better compatibility
+        bitRate: 64000, // Lower bitrate for better compatibility
       },
       ios: {
         extension: ".m4a",
-        outputFormat: 2, // MPEG4AAC = 2
-        audioQuality: 2, // High = 2
-        sampleRate: 44100,
-        numberOfChannels: 2,
-        bitRate: 128000,
+        outputFormat: 2, // MPEG4AAC
+        audioQuality: 0, // Low quality for maximum compatibility
+        sampleRate: 22050, // Lower sample rate for better compatibility
+        numberOfChannels: 1, // Mono for better compatibility
+        bitRate: 64000, // Lower bitrate for better compatibility
         linearPCMBitDepth: 16,
         linearPCMIsBigEndian: false,
         linearPCMIsFloat: false,
       },
-      web: {}, // Add empty web property to satisfy RecordingOptions type
+      web: {},
     }
+
+    console.log('📋 Recording options:', JSON.stringify(recordingOptions, null, 2));
+    
+    // Add longer delay to ensure audio session is properly configured
+    await new Promise(resolve => setTimeout(resolve, 300))
+    
+    // Prepare recording with options
+    console.log('⚙️ Preparing recording...');
     await recording.prepareToRecordAsync(recordingOptions)
+    console.log('✅ Recording prepared');
+    
+    console.log('▶️ Starting recording...');
     await recording.startAsync()
+    
+    console.log('🎉 Recording started successfully');
     return recording
   } catch (error) {
-    console.error("Failed to start recording:", error)
-    throw new Error(`Failed to start recording: ${error instanceof Error ? error.message : "Unknown error"}`)
+    console.error("❌ Failed to start recording:", error);
+    
+    // Provide more specific error messages for iOS
+    let errorMessage = "Failed to start recording"
+    if (error instanceof Error) {
+      if (error.message.includes('NSOSStatusErrorDomain')) {
+        errorMessage = "Audio session error. Please close other audio apps and try again."
+      } else if (error.message.includes('permission')) {
+        errorMessage = "Microphone permission is required. Please grant permission in Settings."
+      } else if (error.message.includes('prepare')) {
+        errorMessage = "Failed to prepare recording. Please try again."
+      }
+    }
+    
+    throw new Error(errorMessage)
   }
 }
 
