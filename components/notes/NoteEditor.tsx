@@ -73,6 +73,11 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     alignment: 'left' as 'left' | 'center' | 'right',
   });
   const [showFontFamilyPicker, setShowFontFamilyPicker] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const [showSearchBar, setShowSearchBar] = useState(false);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [searchResults, setSearchResults] = useState<number[]>([]);
+  const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
 
   // Keyboard listeners
   useEffect(() => {
@@ -511,7 +516,9 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
             </View>
             <View style={{ flex: 1 }}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Pressable onPress={() => {}} style={styles.insertButton}><Feather name="check-square" size={22} color={colors.primary} /></Pressable>
+                <Pressable onPress={() => {
+                  pellEditorRef.current?.insertHTML?.('<input type="checkbox" style="width:18px;height:18px;vertical-align:middle;margin-right:4px;" />');
+                }} style={styles.insertButton}><Feather name="check-square" size={22} color={colors.primary} /></Pressable>
                 <Pressable onPress={() => {}} style={styles.insertButton}><Feather name="calendar" size={22} color={colors.primary} /></Pressable>
                 <Pressable onPress={() => {}} style={styles.insertButton}><Feather name="camera" size={22} color={colors.primary} /></Pressable>
                 <Pressable onPress={() => {}} style={styles.insertButton}><MaterialCommunityIcons name="table" size={22} color={colors.primary} /></Pressable>
@@ -609,6 +616,54 @@ const styles = StyleSheet.create({
     padding: 6,
     marginHorizontal: 1,
     borderRadius: 6,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+  },
+  searchBarButton: {
+    padding: 6,
+  },
+  searchInputContainer: {
+    flex: 1,
+    marginHorizontal: 10,
+  },
+  searchInput: {
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    fontSize: 16,
+  },
+  searchActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  searchResultsText: {
+    fontSize: 14,
+    marginRight: 10,
+  },
+  cancelButton: {
+    fontSize: 16,
+  },
+  optionsMenu: {
+    position: 'absolute',
+    top: 70,
+    left: 20,
+    right: 20,
+    borderRadius: 12,
+    paddingVertical: 8,
+    elevation: 8,
+  },
+  optionsMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
 });
 
