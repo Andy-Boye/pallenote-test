@@ -7,7 +7,6 @@ interface FormatPanelProps {
   visible: boolean;
   onClose: () => void;
 }
-
 const FormatPanel: React.FC<FormatPanelProps> = ({ visible, onClose }) => {
   const { colors } = useTheme();
 
