@@ -6,23 +6,27 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 interface FormatPanelProps {
   visible: boolean;
   onClose: () => void;
+  onFormatAction: (action: string) => void;
 }
-const FormatPanel: React.FC<FormatPanelProps> = ({ visible, onClose }) => {
+
+
+const FormatPanel: React.FC<FormatPanelProps> = ({ visible, onClose, onFormatAction }) => {
   const { colors } = useTheme();
 
   const formatOptions = [
-    { icon: 'text', label: 'Font', IconComponent: Ionicons },
-    { icon: 'type', label: 'Font Type', IconComponent: Feather },
-    { icon: 'bold', label: 'Bold', IconComponent: Feather },
-    { icon: 'italic', label: 'Italic', IconComponent: Feather },
-    { icon: 'underline', label: 'Underline', IconComponent: Feather },
-    { icon: 'format-strikethrough-variant', label: 'Strikethrough', IconComponent: MaterialCommunityIcons },
-    { icon: 'format-align-left', label: 'Align Left', IconComponent: MaterialCommunityIcons },
-    { icon: 'format-align-center', label: 'Align Center', IconComponent: MaterialCommunityIcons },
-    { icon: 'format-align-right', label: 'Align Right', IconComponent: MaterialCommunityIcons },
-    { icon: 'link', label: 'Link', IconComponent: Feather },
-    { icon: 'droplet', label: 'Font Color', IconComponent: Feather },
-    { icon: 'type', label: 'Font Size', IconComponent: Feather },
+    { icon: 'text', label: 'Font Family', IconComponent: Ionicons, action: 'fontFamily' },
+    { icon: 'type', label: 'Font Size', IconComponent: Feather, action: 'fontSize' },
+    { icon: 'droplet', label: 'Font Color', IconComponent: Feather, action: 'foreColor' },
+    { icon: 'format-subscript', label: 'Subscript', IconComponent: MaterialCommunityIcons, action: 'subscript' },
+    { icon: 'format-superscript', label: 'Superscript', IconComponent: MaterialCommunityIcons, action: 'superscript' },
+    { icon: 'bold', label: 'Bold', IconComponent: Feather, action: 'bold' },
+    { icon: 'italic', label: 'Italic', IconComponent: Feather, action: 'italic' },
+    { icon: 'underline', label: 'Underline', IconComponent: Feather, action: 'underline' },
+    { icon: 'format-strikethrough-variant', label: 'Strikethrough', IconComponent: MaterialCommunityIcons, action: 'strikethrough' },
+    { icon: 'format-align-left', label: 'Align Left', IconComponent: MaterialCommunityIcons, action: 'alignLeft' },
+    { icon: 'format-align-center', label: 'Align Center', IconComponent: MaterialCommunityIcons, action: 'alignCenter' },
+    { icon: 'format-align-right', label: 'Align Right', IconComponent: MaterialCommunityIcons, action: 'alignRight' },
+    { icon: 'link', label: 'Link', IconComponent: Feather, action: 'link' },
   ];
 
   return (
@@ -36,11 +40,17 @@ const FormatPanel: React.FC<FormatPanelProps> = ({ visible, onClose }) => {
         style={styles.overlay} 
         onPress={onClose}
       >
-        <View style={[styles.panel, { backgroundColor: colors.surface }]}>
+        <View style={[styles.panel, { backgroundColor: colors.surface }]}
+          pointerEvents="box-none"
+        >
           <Text style={[styles.title, { color: colors.text }]}>Formatting</Text>
           <View style={styles.optionsGrid}>
             {formatOptions.map((option, index) => (
-              <View key={index} style={styles.optionItem}>
+              <Pressable
+                key={index}
+                style={styles.optionItem}
+                onPress={() => onFormatAction(option.action)}
+              >
                 <option.IconComponent 
                   name={option.icon as any} 
                   size={28} 
@@ -49,7 +59,7 @@ const FormatPanel: React.FC<FormatPanelProps> = ({ visible, onClose }) => {
                 <Text style={[styles.optionLabel, { color: colors.text }]}>
                   {option.label}
                 </Text>
-              </View>
+              </Pressable>
             ))}
           </View>
         </View>

@@ -10,14 +10,13 @@ import {
   Modal,
   Pressable,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View
 } from 'react-native';
-import EditorToolbar from './EditorToolbar';
-import FormatPanel from './FormatPanel';
-import InsertPanel from './InsertPanel';
+import { RichToolbar, actions } from 'react-native-pell-rich-editor';
 
 
 
@@ -61,7 +60,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
   const [editorFocused, setEditorFocused] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const richTextEditorRef = useRef<any>(null);
+  const pellEditorRef = useRef<any>(null);
   const [formatState, setFormatState] = useState({
     bold: false,
     italic: false,
@@ -69,6 +68,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     strikethrough: false,
     alignment: 'left' as 'left' | 'center' | 'right',
   });
+  const [showFontFamilyPicker, setShowFontFamilyPicker] = useState(false);
 
   // Keyboard listeners
   useEffect(() => {
@@ -95,7 +95,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
 
   // Function to update format state from RichTextEditor
   const updateFormatState = () => {
-    const currentFormatState = richTextEditorRef.current?.getFormatState?.();
+    const currentFormatState = pellEditorRef.current?.getFormatState?.();
     if (currentFormatState) {
       setFormatState(currentFormatState);
     }
@@ -208,37 +208,37 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
 
   // Formatting functions
   const toggleBold = () => {
-    richTextEditorRef.current?.toggleBold();
+    pellEditorRef.current?.toggleBold();
     setTimeout(updateFormatState, 50);
   };
 
   const toggleItalic = () => {
-    richTextEditorRef.current?.toggleItalic();
+    pellEditorRef.current?.toggleItalic();
     setTimeout(updateFormatState, 50);
   };
 
   const toggleUnderline = () => {
-    richTextEditorRef.current?.toggleUnderline();
+    pellEditorRef.current?.toggleUnderline();
     setTimeout(updateFormatState, 50);
   };
 
   const toggleStrikethrough = () => {
-    richTextEditorRef.current?.toggleStrikethrough();
+    pellEditorRef.current?.toggleStrikethrough();
     setTimeout(updateFormatState, 50);
   };
 
   const setAlignmentLeft = () => {
-    richTextEditorRef.current?.setAlignment('left');
+    pellEditorRef.current?.setAlignment('left');
     setTimeout(updateFormatState, 50);
   };
 
   const setAlignmentCenter = () => {
-    richTextEditorRef.current?.setAlignment('center');
+    pellEditorRef.current?.setAlignment('center');
     setTimeout(updateFormatState, 50);
   };
 
   const setAlignmentRight = () => {
-    richTextEditorRef.current?.setAlignment('right');
+    pellEditorRef.current?.setAlignment('right');
     setTimeout(updateFormatState, 50);
   };
 
@@ -336,51 +336,47 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         {/* Content Input */}
         <View style={styles.contentContainer}>
           <RichTextEditor
-            ref={richTextEditorRef}
+            pellEditorRef={pellEditorRef}
             value={noteContent}
             onValueChange={setNoteContent}
-            // minHeight={120} // Remove minHeight to allow full expansion
             placeholder="Start writing..."
             placeholderTextColor={colors.textSecondary}
-            style={{ flex: 1, color: colors.text }} // Make editor expand
+            style={{ flex: 1, color: colors.text }}
             onFocus={() => setEditorFocused(true)}
             onBlur={() => setEditorFocused(false)}
           />
         </View>
 
-        {/* Editor Toolbar - Moves with keyboard */}
-        <View style={[
-          styles.toolbarContainer, 
-          { 
-            bottom: keyboardVisible ? keyboardHeight : 0 
-          }
-        ]}>
-          <EditorToolbar
-            formatState={formatState}
-            onToggleBold={toggleBold}
-            onToggleItalic={toggleItalic}
-            onToggleUnderline={toggleUnderline}
-            onToggleStrikethrough={toggleStrikethrough}
-            onSetAlignmentLeft={setAlignmentLeft}
-            onSetAlignmentCenter={setAlignmentCenter}
-            onSetAlignmentRight={setAlignmentRight}
-            onShowInsertPanel={() => setShowInsertPanel(true)}
-            onShowFormatPanel={() => setShowFormatPanel(true)}
-            editorFocused={editorFocused}
-          />
+        {/* Combined Formatting and Insertion Toolbar, each half scrollable */}
+        <View style={styles.toolbarContainer}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 2, paddingHorizontal: 2 }}>
+            <View style={{ flex: 1 }}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <RichToolbar
+                  editor={pellEditorRef}
+                  actions={[actions.setBold, actions.setItalic, actions.setUnderline, actions.setStrikethrough, actions.alignLeft, actions.alignCenter, actions.alignRight]}
+                  style={{ backgroundColor: 'transparent', borderRadius: 12 }}
+                  iconTint={colors.text}
+                  selectedIconTint={colors.primary}
+                  selectedButtonStyle={{ backgroundColor: 'transparent' }}
+                />
+              </ScrollView>
+            </View>
+            <View style={{ flex: 1 }}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Pressable onPress={() => {}} style={styles.insertButton}><Feather name="check-square" size={22} color={colors.primary} /></Pressable>
+                <Pressable onPress={() => {}} style={styles.insertButton}><Feather name="calendar" size={22} color={colors.primary} /></Pressable>
+                <Pressable onPress={() => {}} style={styles.insertButton}><Feather name="camera" size={22} color={colors.primary} /></Pressable>
+                <Pressable onPress={() => {}} style={styles.insertButton}><MaterialCommunityIcons name="table" size={22} color={colors.primary} /></Pressable>
+                <Pressable onPress={() => {}} style={styles.insertButton}><Feather name="check-square" size={22} color={colors.primary} /></Pressable>
+                <Pressable onPress={() => {}} style={styles.insertButton}><Feather name="image" size={22} color={colors.primary} /></Pressable>
+                <Pressable onPress={() => {}} style={styles.insertButton}><Feather name="mic" size={22} color={colors.primary} /></Pressable>
+                <Pressable onPress={() => {}} style={styles.insertButton}><Feather name="calendar" size={22} color={colors.primary} /></Pressable>
+                <Pressable onPress={() => {}} style={styles.insertButton}><MaterialCommunityIcons name="function-variant" size={22} color={colors.primary} /></Pressable>
+              </ScrollView>
+            </View>
+          </View>
         </View>
-
-        {/* Insert Panel */}
-        <InsertPanel
-          visible={showInsertPanel}
-          onClose={() => setShowInsertPanel(false)}
-        />
-
-        {/* Format Panel */}
-        <FormatPanel
-          visible={showFormatPanel}
-          onClose={() => setShowFormatPanel(false)}
-        />
       </SafeAreaView>
     </Modal>
   );
@@ -449,10 +445,21 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'transparent',
-    paddingHorizontal: 20,
+    backgroundColor: undefined, // will be set by RichToolbar or parent
+    paddingHorizontal: 10,
     paddingBottom: 10,
-    zIndex: 10,
+    zIndex: 20,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 12,
+    minHeight: 48,
+    // Removed shadow and elevation for a flat look
+  },
+  insertButton: {
+    padding: 6,
+    marginHorizontal: 1,
+    borderRadius: 6,
   },
 });
 
