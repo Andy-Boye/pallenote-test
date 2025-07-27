@@ -1,12 +1,13 @@
 import { getNotes } from "@/api/notesApi";
 import type { Note } from "@/api/types";
 import FloatingActionButton from '@/components/FloatingActionButton';
+import SearchBar from '@/components/SearchBar';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from "react";
-import { Alert, Animated, Dimensions, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, Animated, Dimensions, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import DarkGradientBackground from '../../components/DarkGradientBackground';
 
 const HomeScreen = () => {
@@ -95,17 +96,12 @@ const HomeScreen = () => {
             Good morning, John!
           </Text>
 
-          <View style={[styles.searchContainer, { backgroundColor: colors.accent }]}>
-            <Ionicons name="search-outline" size={20} color={colors.textSecondary} />
-            <TextInput
-              style={[styles.searchInput, { color: colors.text }]}
-              placeholder="Search notes, tasks..."
-              placeholderTextColor={colors.textSecondary}
-              value={searchText}
-              onChangeText={setSearchText}
-              onSubmitEditing={handleSearch}
-            />
-          </View>
+          <SearchBar
+            value={searchText}
+            onChangeText={setSearchText}
+            placeholder="Search notes, tasks..."
+            onClear={() => setSearchText('')}
+          />
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -300,18 +296,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     marginBottom: 16,
   },
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 12,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-  },
+
   content: { flex: 1, paddingHorizontal: 20 },
   statsContainer: {
     flexDirection: "row",

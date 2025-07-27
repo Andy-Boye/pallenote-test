@@ -1,26 +1,24 @@
 import { getNotebooks } from '@/api/notebooksApi';
+import type { Notebook } from '@/api/types';
 import RichTextEditor from '@/components/RichTextEditor';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Modal,
-    Pressable,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
 } from 'react-native';
 import EditorToolbar from './EditorToolbar';
 import FormatPanel from './FormatPanel';
 import InsertPanel from './InsertPanel';
 
-interface Notebook {
-  id: string;
-  title: string;
-}
+
 
 interface NoteEditorProps {
   visible: boolean;
@@ -77,45 +75,83 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     }
   };
 
-  // Fetch notebooks for selector
+  // Fetch notebooks and handle form initialization
   useEffect(() => {
     const fetchNotebooks = async () => {
       try {
         const data = await getNotebooks();
-        setNotebooks([{ id: 'default', title: 'My Notebook' }, ...(data as any)]);
-        setSelectedNotebook({ id: 'default', title: 'My Notebook' });
+        console.log('NoteEditor - Loaded notebooks:', data); // Debug log
+        // Add "My Notebook" as the default option for unassigned notes
+        const defaultNotebook = { id: 'default', title: 'My Notebook' };
+        const allNotebooks = [defaultNotebook, ...(data as Notebook[])];
+        console.log('NoteEditor - All notebooks including default:', allNotebooks); // Debug log
+        setNotebooks(allNotebooks);
+        
+        // Handle form initialization based on whether we're editing or creating
+        if (editingNote) {
+          console.log('NoteEditor - Editing note:', editingNote); // Debug log
+          // Load existing note data
+          setNoteTitle(editingNote.title);
+          setNoteContent(editingNote.content);
+          
+          // Set selected notebook based on editing note
+          if (editingNote.notebookId !== 'default') {
+            const existingNotebook = data.find(nb => nb.id === editingNote.notebookId);
+            console.log('NoteEditor - Found existing notebook:', existingNotebook); // Debug log
+            if (existingNotebook) {
+              setSelectedNotebook(existingNotebook);
+            } else {
+              setSelectedNotebook(defaultNotebook);
+            }
+          } else {
+            setSelectedNotebook(defaultNotebook);
+          }
+        } else {
+          console.log('NoteEditor - Creating new note, defaulting to My Notebook'); // Debug log
+          // Reset for new note - always default to "My Notebook"
+          setNoteTitle("");
+          setNoteContent("");
+          setSelectedNotebook(defaultNotebook);
+        }
+        
+        setFormatState({
+          bold: false,
+          italic: false,
+          underline: false,
+          strikethrough: false,
+          alignment: 'left',
+        });
       } catch (error) {
-        setNotebooks([{ id: 'default', title: 'My Notebook' }]);
-        setSelectedNotebook({ id: 'default', title: 'My Notebook' });
+        console.error('Error fetching notebooks:', error);
+        // Fallback to just the default notebook
+        const defaultNotebook = { id: 'default', title: 'My Notebook' };
+        setNotebooks([defaultNotebook]);
+        
+        if (editingNote) {
+          setNoteTitle(editingNote.title);
+          setNoteContent(editingNote.content);
+          setSelectedNotebook({ 
+            id: editingNote.notebookId, 
+            title: editingNote.notebookTitle 
+          });
+        } else {
+          setNoteTitle("");
+          setNoteContent("");
+          setSelectedNotebook(defaultNotebook);
+        }
+        
+        setFormatState({
+          bold: false,
+          italic: false,
+          underline: false,
+          strikethrough: false,
+          alignment: 'left',
+        });
       }
     };
-    if (visible) fetchNotebooks();
-  }, [visible]);
-
-  // Reset form when editor opens or load existing note
-  useEffect(() => {
+    
     if (visible) {
-      if (editingNote) {
-        // Load existing note data
-        setNoteTitle(editingNote.title);
-        setNoteContent(editingNote.content);
-        setSelectedNotebook({ 
-          id: editingNote.notebookId, 
-          title: editingNote.notebookTitle 
-        });
-      } else {
-        // Reset for new note
-        setNoteTitle("");
-        setNoteContent("");
-        setSelectedNotebook({ id: 'default', title: 'My Notebook' });
-      }
-      setFormatState({
-        bold: false,
-        italic: false,
-        underline: false,
-        strikethrough: false,
-        alignment: 'left',
-      });
+      fetchNotebooks();
     }
   }, [visible, editingNote]);
 
@@ -140,6 +176,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
       date: editingNote?.date || new Date().toLocaleDateString(),
     };
     
+    console.log('NoteEditor - Saving note with notebookId:', note.notebookId, 'selectedNotebook:', selectedNotebook); // Debug log
     onSave(note);
   };
 
@@ -243,7 +280,11 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
               {notebooks.map(nb => (
                 <Pressable
                   key={nb.id}
-                  onPress={() => { setSelectedNotebook(nb); setNotebookDropdownVisible(false); }}
+                  onPress={() => { 
+                    console.log('NoteEditor - Selected notebook:', nb); // Debug log
+                    setSelectedNotebook(nb); 
+                    setNotebookDropdownVisible(false); 
+                  }}
                   style={styles.dropdownItem}
                 >
                   <Ionicons name="book-outline" size={18} color={colors.primary} style={{ marginRight: 8 }} />

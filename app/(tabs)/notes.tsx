@@ -1,14 +1,14 @@
 "use client";
 
-import { getNotes } from "@/api/notesApi";
+import { createNote, getNotes, updateNote } from "@/api/notesApi";
 import type { Note } from "@/api/types";
 import FAB from "@/components/FAB";
 import {
   NoteEditor,
   NotesHeader,
   NotesList,
-  SearchBar
 } from "@/components/notes";
+import SearchBar from "@/components/SearchBar";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -52,7 +52,7 @@ const NotesScreen = () => {
       const noteForEditor = {
         ...note,
         notebookId: note.notebookId || 'default',
-        notebookTitle: 'My Notebook', // Default value, you might want to fetch actual notebook title
+        notebookTitle: note.notebookId === 'default' ? 'My Notebook' : 'My Notebook', // For now, all notes show as "My Notebook"
       };
       setEditingNote(noteForEditor);
       setEditorVisible(true);
@@ -77,18 +77,44 @@ const NotesScreen = () => {
     notebookTitle: string;
     date: string;
   }) => {
+    console.log('=== SAVING NOTE ===');
+    console.log('Note data from editor:', note);
+    console.log('Editing note state:', editingNote);
     setSaving(true);
     try {
+      // Prepare note data for API
+      const noteData = {
+        title: note.title,
+        content: note.content,
+        notebookId: note.notebookId, // Keep the notebookId as is, including 'default'
+        date: note.date,
+      };
+      
+      console.log('Note data being sent to API:', noteData);
+
       if (editingNote) {
-        // Update existing note
-        setNotes(prevNotes => 
-          prevNotes.map(n => n.id === note.id ? note : n)
-        );
+        // Update existing note via API
+        console.log('Updating existing note...');
+        const updatedNote = await updateNote(note.id, noteData);
+        console.log('Updated note returned from API:', updatedNote);
+        setNotes(prevNotes => {
+          const newNotes = prevNotes.map(n => n.id === note.id ? updatedNote : n);
+          console.log('Updated notes state:', newNotes);
+          return newNotes;
+        });
       } else {
-        // Add new note
-        setNotes(prevNotes => [note, ...prevNotes]);
+        // Create new note via API
+        console.log('Creating new note...');
+        const newNote = await createNote(noteData);
+        console.log('New note returned from API:', newNote);
+        setNotes(prevNotes => {
+          const newNotes = [newNote, ...prevNotes];
+          console.log('Updated notes state after creation:', newNotes);
+          return newNotes;
+        });
       }
       
+      console.log('=== NOTE SAVED SUCCESSFULLY ===');
       // Close editor
       closeNoteEditor();
     } catch (error) {
@@ -109,7 +135,12 @@ const NotesScreen = () => {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <NotesHeader />
-      <SearchBar value={searchText} onChangeText={setSearchText} />
+      <SearchBar 
+        value={searchText} 
+        onChangeText={setSearchText} 
+        placeholder="Search notes..."
+        onClear={() => setSearchText('')}
+      />
       <NotesList 
         notes={notes} 
         onNotePress={openNote} 

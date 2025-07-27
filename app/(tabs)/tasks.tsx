@@ -1,6 +1,7 @@
 "use client";
 
 import FAB from "@/components/FAB";
+import SearchBar from "@/components/SearchBar";
 import TaskItem from "@/components/TaskItem";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
@@ -8,17 +9,16 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Keyboard,
-  Modal,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Modal,
+    Platform,
+    Pressable,
+    StyleSheet,
+    Text,
+    TextInput,
+    View
 } from "react-native";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DarkGradientBackground from '../../components/DarkGradientBackground';
@@ -303,18 +303,12 @@ const TasksScreen = () => {
         </Pressable>
       </View>
       {/* Search Bar */}
-      <View style={[styles.searchContainer, { backgroundColor: colors.accent, marginBottom: 18, marginTop: 2 }]}>
-        <Ionicons name="search-outline" size={20} color={colors.textSecondary} />
-        <TextInput
-          style={[styles.searchInput, { color: colors.text }]}
-          placeholder="Search tasks..."
-          placeholderTextColor={colors.textSecondary}
-          value={searchText}
-          onChangeText={setSearchText}
-          returnKeyType="search"
-          onSubmitEditing={Keyboard.dismiss}
-        />
-      </View>
+      <SearchBar
+        value={searchText}
+        onChangeText={setSearchText}
+        placeholder="Search tasks..."
+        onClear={() => setSearchText('')}
+      />
       {/* Replace the quick stats row with a simple row of icons and text */}
       <View style={styles.statsSimpleRow}>
         <Ionicons name="checkmark-done-circle" size={20} color={colors.primary} style={{ marginRight: 6 }} />
@@ -734,20 +728,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginHorizontal: 8,
   },
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    marginHorizontal: 18,
-    marginBottom: 10,
-    gap: 12,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-  },
+
   fabContainer: {
     position: 'absolute',
     right: 28,

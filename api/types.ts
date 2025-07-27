@@ -37,8 +37,10 @@ export interface Note {
   id: string;
   title: string;
   content: string;
-  notebookId?: string;
+  notebookId: string;
   date: string;
+  createdAt?: string;
+  updatedAt?: string;
   // Add more fields as needed
 }
 
