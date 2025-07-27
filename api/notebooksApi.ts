@@ -62,3 +62,21 @@ export const deleteNotebook = async (id: string): Promise<void> => {
     throw error
   }
 }
+
+export const deleteNotebookAndContents = async (id: string): Promise<void> => {
+  try {
+    await apiClient.delete(`/notebooks/${id}/with-contents`)
+  } catch (error) {
+    console.error("Delete notebook and contents error:", error)
+    throw error
+  }
+}
+
+export const moveNotesToDefaultNotebook = async (notebookId: string): Promise<void> => {
+  try {
+    await apiClient.put(`/notebooks/${notebookId}/move-notes-to-default`)
+  } catch (error) {
+    console.error("Move notes to default notebook error:", error)
+    throw error
+  }
+}
