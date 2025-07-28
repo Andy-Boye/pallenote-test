@@ -18,7 +18,6 @@ import {
   View
 } from 'react-native';
 import { RichToolbar, actions } from 'react-native-pell-rich-editor';
-import { RichToolbar, actions } from 'react-native-pell-rich-editor';
 
 
 
@@ -104,7 +103,6 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
 
   // Function to update format state from RichTextEditor
   const updateFormatState = () => {
-    const currentFormatState = pellEditorRef.current?.getFormatState?.();
     const currentFormatState = pellEditorRef.current?.getFormatState?.();
     if (currentFormatState) {
       setFormatState(currentFormatState);
@@ -487,13 +485,11 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         <View style={styles.contentContainer}>
           <RichTextEditor
             pellEditorRef={pellEditorRef}
-            pellEditorRef={pellEditorRef}
             value={noteContent}
             onValueChange={setNoteContent}
             placeholder="Start writing..."
             placeholderTextColor={colors.textSecondary}
-            style={{ flex: 1, color: colors.text }}
-            style={{ flex: 1, color: colors.text }}
+            style={{ flex: 1, color: colors.text }} 
             onFocus={() => setEditorFocused(true)}
             onBlur={() => setEditorFocused(false)}
           />
@@ -601,8 +597,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: undefined, // will be set by RichToolbar or parent
     paddingHorizontal: 10,
-    backgroundColor: undefined, // will be set by RichToolbar or parent
-    paddingHorizontal: 10,
     paddingBottom: 10,
     zIndex: 20,
     borderTopWidth: 1,
@@ -610,7 +604,6 @@ const styles = StyleSheet.create({
     borderColor: '#e0e0e0',
     borderRadius: 12,
     minHeight: 48,
-    // Removed shadow and elevation for a flat look
   },
   insertButton: {
     padding: 6,
