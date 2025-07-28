@@ -1,5 +1,6 @@
 import { apiClient } from "./config"
-import type { User, ApiResponse } from "./types"
+import type { ApiResponse } from "./types"
+import type { User } from "./backendTypes"
 
 export const getUserProfile = async (): Promise<User> => {
   try {
@@ -13,7 +14,7 @@ export const getUserProfile = async (): Promise<User> => {
 
 export const updateUserProfile = async (user: Partial<User>): Promise<User> => {
   try {
-    const response = await apiClient.put<ApiResponse<User>>("/user/profile", user)
+    const response = await apiClient.patch<ApiResponse<User>>("/user/profile", user)
     return response.data.data
   } catch (error) {
     console.error("Update user profile error:", error)

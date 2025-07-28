@@ -25,6 +25,7 @@ const schema = yup.object().shape({
     .string()
     .email("Invalid email address")
     .required("Email is required"),
+  username: yup.string().required("Username is required"),
   password: yup
     .string()
     .min(6, "Password must be at least 6 characters")
@@ -34,6 +35,7 @@ const schema = yup.object().shape({
 type FormData = {
   name: string;
   email: string;
+  username: string;
   password: string;
 };
 
@@ -52,7 +54,7 @@ const SignupScreen = () => {
 
   const onSubmit = async (data: FormData) => {
     try {
-      await signUp(data.name, data.email, data.password);
+      await signUp(data.name, data.email, data.username, data.password);
       // Redirection is usually handled in AuthContext, but fallback here
     } catch {
       Alert.alert("Signup Failed", "An error occurred during signup.");
@@ -138,6 +140,30 @@ const SignupScreen = () => {
           {errors.password && (
             <Text style={[styles.errorText, { color: '#d32f2f' }]}>
               {errors.password.message}
+            </Text>
+          )}
+
+          {/* Username Field (moved after password) */}
+          <Controller
+            control={control}
+            name="username"
+            render={({ field: { onChange, value } }) => (
+              <TextInput
+                style={[
+                  styles.input,
+                  { backgroundColor: colors.card, color: colors.text },
+                ]}
+                placeholder="Username"
+                placeholderTextColor="#B0AEB8"
+                onChangeText={onChange}
+                value={value}
+                autoCapitalize="none"
+              />
+            )}
+          />
+          {errors.username && (
+            <Text style={[styles.errorText, { color: '#d32f2f' }]}>
+              {errors.username.message}
             </Text>
           )}
 

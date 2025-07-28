@@ -8,8 +8,9 @@ interface Props {
   style?: any;
 }
 
-const DARK_GRADIENT: [string, string, string] = ['#1a2747', '#22335a', '#2c406e'];
-const ARC_COLOR = '#101a2b';
+// Microsoft Teams-inspired dark gradient (updated)
+const DARK_GRADIENT: [string, string, string] = ['#070c18', '#0a1420', '#0f1a28'];
+const ARC_COLOR = '#0a1420';
 
 export default function DarkGradientBackground({ children, style }: Props) {
   const { colors } = useTheme();

@@ -1,4 +1,5 @@
 // Shared TypeScript interfaces for the Pallenote project
+// Deprecated: Use types from backendTypes.ts instead
 export interface User {
   id: string
   name: string

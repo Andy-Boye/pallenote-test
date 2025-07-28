@@ -1,4 +1,3 @@
-import Colors from '@/constants/Colors';
 import { useTheme } from '@/contexts/ThemeContext';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Tabs } from 'expo-router';
@@ -10,18 +9,17 @@ function TabBarIcon(props: { name: React.ComponentProps<typeof FontAwesome>['nam
 }
 
 export default function TabLayout() {
-  const { isDarkMode } = useTheme();
-  const colorScheme = isDarkMode ? 'dark' : 'light';
+  const { isDarkMode, colors } = useTheme();
 
   return (
     <DarkGradientBackground>
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: Colors[colorScheme].tint,
-          tabBarInactiveTintColor: Colors[colorScheme].tabIconDefault,
+          tabBarActiveTintColor: colors.primary,
+          tabBarInactiveTintColor: colors.textSecondary,
           tabBarStyle: {
-            backgroundColor: Colors[colorScheme].background,
-            borderTopColor: Colors[colorScheme].icon,
+            backgroundColor: colors.card,
+            borderTopColor: colors.border,
           },
           headerShown: false,
         }}>

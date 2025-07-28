@@ -3,26 +3,34 @@ import axios, { type AxiosRequestHeaders } from "axios"
 // Use process.env.NODE_ENV for dev check
 
 // API Configuration
-export const API_BASE_URL = process.env.NODE_ENV === "development" ? "http://localhost:3000/api" : "https://your-production-api.com/api"
+console.log('NODE_ENV:', process.env.NODE_ENV)
+console.log('API_BASE_URL before assignment:', process.env.API_BASE_URL)
+export const API_BASE_URL = "https://pella-notes.onrender.com/api/v1"
+console.log('API_BASE_URL after assignment:', API_BASE_URL)
 
 // Create axios instance with default config
+console.log('Creating axios instance with baseURL:', API_BASE_URL)
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 50000,
   headers: {
     "Content-Type": "application/json",
   },
 })
+console.log('Axios instance created with baseURL:', apiClient.defaults.baseURL)
 
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
-  (config) => {
-    // Synchronous interceptor: get token from AsyncStorage synchronously if possible, else skip
-    // For full async, use request in each API call instead
-    if (!config.headers) config.headers = {} as AxiosRequestHeaders;
-    // Optionally, you can set a static token here for dev/testing
-    // config.headers.Authorization = `Bearer <token>`;
-    return config;
+  async (config) => {
+    try {
+      const token = await AsyncStorage.getItem("authToken")
+      if (token && config.headers) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
+    } catch (error) {
+      console.error("Error getting auth token:", error)
+    }
+    return config
   },
   (error) => {
     return Promise.reject(error)

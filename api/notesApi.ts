@@ -1,5 +1,6 @@
 import { apiClient } from "./config";
-import type { ApiResponse, Note } from "./types";
+import type { ApiResponse } from "./types";
+import type { Note } from "./backendTypes";
 
 export const getNotes = async (): Promise<Note[]> => {
   console.log('=== GET NOTES API CALLED ===');

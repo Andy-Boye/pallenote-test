@@ -12,7 +12,7 @@ import { Alert, Animated, Dimensions, Easing, Modal, Pressable, ScrollView, Styl
 import DarkGradientBackground from '../../components/DarkGradientBackground';
 
 const HomeScreen = () => {
-  const { colors } = useTheme()
+  const { colors, isDarkMode } = useTheme()
   const [searchText, setSearchText] = useState("")
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [drawerAnim] = useState(new Animated.Value(-Dimensions.get('window').width * 0.5))
@@ -653,7 +653,11 @@ const HomeScreen = () => {
                 onPress={() => { closeDrawer(); router.push(item.path as any); }}
               >
                 <View style={[styles.drawerIcon, { backgroundColor: colors.accent }]}>
-                  <Ionicons name={item.icon as any} size={18} color="white" />
+                  <Ionicons 
+                    name={item.icon as any} 
+                    size={18} 
+                    color={isDarkMode ? 'white' : colors.primary} 
+                  />
                 </View>
                 <Text style={[styles.drawerOptionText, { color: colors.text }]} className="font-[InterMedium]">
                   {item.label}

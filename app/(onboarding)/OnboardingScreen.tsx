@@ -111,8 +111,8 @@ const OnboardingScreen = () => {
 
   const renderItem = ({ item }: { item: typeof onboardingData[0] }) => (
     <View style={[styles.slide, { width }]}> 
-      <View style={[styles.iconContainer, { backgroundColor: colors.accent }]}> 
-        <Ionicons name={item.icon as any} size={80} color={colors.primary} />
+      <View style={[styles.iconContainer, { backgroundColor: colors.primary }]}> 
+        <Ionicons name={item.icon as any} size={80} color={'white'} />
       </View>
       <Text style={[styles.title, { color: colors.text }]}>{item.title}</Text>
       <Text style={[styles.description, { color: colors.textSecondary }]}>

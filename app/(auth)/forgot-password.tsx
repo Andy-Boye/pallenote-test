@@ -1,20 +1,21 @@
 "use client";
 
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity } from "react-native";
 import DarkGradientBackground from '../../components/DarkGradientBackground';
-// import { forgotPassword } from "@/api/authApi"; // Uncomment and implement if you have this API
 
 const ForgotPasswordScreen = () => {
   const router = useRouter();
   const { colors } = useTheme();
+  const { forgotPassword } = useAuth();
   const [email, setEmail] = useState("");
 
   const handleForgotPassword = async () => {
     try {
-      // await forgotPassword(email); // Uncomment if you have this API
+      await forgotPassword(email);
       Alert.alert("Check your email", "Password reset instructions sent");
       router.back();
     } catch (error: any) {

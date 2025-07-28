@@ -1,5 +1,6 @@
 import { apiClient } from "./config"
-import type { ApiResponse, Notebook } from "./types"
+import type { ApiResponse } from "./types"
+import type { Notebook } from "./backendTypes"
 
 export const getNotebooks = async (): Promise<Notebook[]> => {
   try {

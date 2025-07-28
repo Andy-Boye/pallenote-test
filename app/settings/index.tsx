@@ -12,6 +12,7 @@ export default function SettingsScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [autoBackupEnabled, setAutoBackupEnabled] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [facialRecognitionEnabled, setFacialRecognitionEnabled] = useState(false);
 
   const handleExportData = () => {
     Alert.alert("Export Data", "Your data has been exported successfully.");
@@ -19,6 +20,10 @@ export default function SettingsScreen() {
 
   const handleClearCache = () => {
     Alert.alert("Clear Cache", "Cache cleared successfully.");
+  };
+
+  const handleRecycleBin = () => {
+    router.push('/recycle-bin');
   };
 
   return (
@@ -94,6 +99,31 @@ export default function SettingsScreen() {
               value={biometricEnabled}
               onValueChange={() => setBiometricEnabled(!biometricEnabled)}
             />
+
+            {/* Facial Recognition */}
+            <SettingRow
+              icon="eye"
+              label="Facial Recognition"
+              value={facialRecognitionEnabled}
+              onValueChange={() => setFacialRecognitionEnabled(!facialRecognitionEnabled)}
+            />
+
+            {/* Recycle Bin */}
+            <TouchableOpacity
+              onPress={handleRecycleBin}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: 14,
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Ionicons name="trash" size={22} color={colors.primary} style={{ marginRight: 10 }} />
+                <Text style={{ color: colors.text, fontSize: 16 }}>Recycle Bin</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.text} />
+            </TouchableOpacity>
 
             {/* Export Data */}
             <TouchableOpacity

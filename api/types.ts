@@ -1,5 +1,7 @@
 // API types for pallenote
 
+import type { User } from "./backendTypes"
+
 export interface ApiResponse<T> {
   data: T;
   success: boolean;
@@ -7,7 +9,7 @@ export interface ApiResponse<T> {
 }
 
 export interface AuthResponse {
-  user: any; // Replace with your User type if available
+  user: User;
   token: string;
   refreshToken: string;
 }
@@ -62,4 +64,19 @@ export interface Task {
   createdAt?: string;
   updatedAt?: string;
   // Add more fields as needed
+}
+
+// Auth-related types
+export interface OtpRequest {
+  email: string;
+  otp: string;
+}
+
+export interface PasswordChangeRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface OtpResponse {
+  message: string;
 } 

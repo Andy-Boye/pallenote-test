@@ -15,18 +15,13 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import ScreenBackground from "../../components/ScreenBackground";
 import { useTheme } from "@/contexts/ThemeContext";
-
-// Placeholder for actual OTP verification logic
-async function verifyOtp(email: string, code: string): Promise<boolean> {
-  // TODO: Implement real API call
-  await new Promise((res) => setTimeout(res, 800));
-  return code === "1234"; // Accept 1234 as demo code
-}
+import { useAuth } from "@/contexts/AuthContext";
 
 const OTP_LENGTH = 4;
 
 const OtpVerificationScreen = () => {
   const { colors } = useTheme();
+  const { verifyOtp, resendOtp } = useAuth();
   const router = useRouter();
   const params = useLocalSearchParams<{ email?: string; onSuccessRoute?: string }>();
   const email = params.email || "";
@@ -105,23 +100,18 @@ const OtpVerificationScreen = () => {
     setSubmitting(true);
     try {
       const code = otp.join("");
-      const ok = await verifyOtp(email, code);
-      if (ok) {
-        // If navigating to reset-password, pass the email as parameter
-        if (onSuccessRoute === "/(auth)/reset-password") {
-          router.replace({
-            pathname: "/(auth)/reset-password" as any,
-            params: { email: email }
-          });
-        } else {
-          router.replace(onSuccessRoute as any);
-        }
+      await verifyOtp(email, code);
+      // If navigating to reset-password, pass the email as parameter
+      if (onSuccessRoute === "/(auth)/reset-password") {
+        router.replace({
+          pathname: "/(auth)/reset-password" as any,
+          params: { email: email }
+        });
       } else {
-        setError("Invalid code. Please try again.");
-        shakeInputs();
+        router.replace(onSuccessRoute as any);
       }
     } catch (err) {
-      setError("Verification failed. Please try again.");
+      setError("Invalid code. Please try again.");
       shakeInputs();
     } finally {
       setSubmitting(false);
@@ -129,10 +119,14 @@ const OtpVerificationScreen = () => {
   };
 
   // Resend OTP
-  const handleResend = () => {
-    setResendTimer(30);
-    // TODO: Implement resend logic (API call)
-    Alert.alert("Code sent", `A new code was sent to ${email}`);
+  const handleResend = async () => {
+    try {
+      await resendOtp(email);
+      setResendTimer(30);
+      Alert.alert("Code sent", `A new code was sent to ${email}`);
+    } catch (err) {
+      Alert.alert("Error", "Failed to resend code. Please try again.");
+    }
   };
 
   // Timer effect

@@ -1,5 +1,5 @@
 import { apiClient, API_BASE_URL } from "./config"
-import type { Recording, ApiResponse } from "./types"
+import type { ApiResponse } from "./types"
 import * as FileSystem from "expo-file-system"
 
 export const uploadRecording = async (uri: string, noteId?: string): Promise<Recording> => {

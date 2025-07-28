@@ -122,7 +122,7 @@ const RECORDING_CATEGORIES = [
 ];
 
 const RecordingScreen = () => {
-  const { colors } = useTheme();
+  const { colors, isDarkMode } = useTheme();
   const router = useRouter();
 
   // Recording state
@@ -638,18 +638,18 @@ const RecordingScreen = () => {
       <View style={{ flex: 1 }}>
         {/* Enhanced gradient background */}
         <LinearGradient
-          colors={['#070c18', '#101a2b', '#181f2e']}
+          colors={isDarkMode ? ['#070c18', '#0a1420', '#0f1a28'] : ['#FFFFFF', '#F5F5F5', '#E5E5E5']}
           style={StyleSheet.absoluteFill}
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 1 }}
         />
         
         {/* Enhanced decorative elements */}
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 120, backgroundColor: '#101a2b', borderBottomLeftRadius: 80, borderBottomRightRadius: 80, opacity: 0.15, zIndex: 1 }} />
-        <View style={{ position: 'absolute', top: 40, left: 20, right: 20, height: 60, backgroundColor: '#0078d4', borderRadius: 30, opacity: 0.08, zIndex: 1 }} />
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 120, backgroundColor: isDarkMode ? '#0a1420' : '#F5F5F5', borderBottomLeftRadius: 80, borderBottomRightRadius: 80, opacity: isDarkMode ? 0.15 : 0.3, zIndex: 1 }} />
+        <View style={{ position: 'absolute', top: 40, left: 20, right: 20, height: 60, backgroundColor: colors.primary, borderRadius: 30, opacity: isDarkMode ? 0.08 : 0.1, zIndex: 1 }} />
         
         {/* Enhanced Header */}
-        <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: colors.border, borderBottomWidth: 1, shadowColor: colors.text, shadowOpacity: 0.08, shadowRadius: 8, elevation: 4, zIndex: 2 }]}> 
+        <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: colors.border, borderBottomWidth: 1, shadowColor: isDarkMode ? 'rgba(0, 0, 0, 0.2)' : 'rgba(0, 0, 0, 0.08)', shadowOpacity: 0.08, shadowRadius: 8, elevation: 4, zIndex: 2 }]}> 
           <TouchableOpacity onPress={() => router.back()} style={[styles.headerButton, { backgroundColor: colors.surface }]}>
             <Ionicons name="arrow-back" size={20} color={colors.text} />
           </TouchableOpacity>
@@ -759,7 +759,7 @@ const RecordingScreen = () => {
             {isRecording && (
               <View style={[styles.audioMeter, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <Text style={[styles.audioMeterLabel, { color: colors.textSecondary }]}>Audio Level</Text>
-                <View style={styles.audioMeterBar}>
+                <View style={[styles.audioMeterBar, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }]}>
                   <Animated.View 
                     style={[
                       styles.audioMeterFill, 
@@ -803,7 +803,7 @@ const RecordingScreen = () => {
               <TouchableOpacity
                 style={[styles.recordingButton, { 
                   backgroundColor: isRecording ? colors.error : (isRetrying ? colors.warning : colors.primary), 
-                  shadowColor: colors.text, 
+                  shadowColor: isDarkMode ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0.2)', 
                   shadowOpacity: 0.2, 
                   shadowRadius: 12, 
                   elevation: 12,
@@ -857,7 +857,7 @@ const RecordingScreen = () => {
                 <ScrollView style={styles.transcriptionScroll} showsVerticalScrollIndicator={false}>
                   <Text style={[styles.transcription, { color: colors.text }]}>{transcription}</Text>
                 </ScrollView>
-                <View style={styles.transcriptionActions}>
+                <View style={[styles.transcriptionActions, { borderTopColor: colors.border }]}>
                   <TouchableOpacity style={styles.transcriptionAction}>
                     <Ionicons name="copy-outline" size={16} color={colors.textSecondary} />
                     <Text style={[styles.transcriptionActionText, { color: colors.textSecondary }]}>Copy</Text>
@@ -876,7 +876,7 @@ const RecordingScreen = () => {
             <View style={styles.recordingsHeader}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Recordings</Text>
               <TouchableOpacity 
-                style={styles.searchButton}
+                style={[styles.searchButton, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }]}
                 onPress={() => setShowSearch(true)}
               >
                 <Ionicons name="search-outline" size={20} color={colors.textSecondary} />
@@ -884,14 +884,14 @@ const RecordingScreen = () => {
             </View>
             
             {recordings.length === 0 ? (
-              <View style={[styles.emptyState, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={[styles.emptyState, { backgroundColor: colors.surface, borderColor: colors.border, borderStyle: 'dashed' }]}>
                 <Ionicons name="mic-off-outline" size={48} color={colors.textSecondary} />
                 <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>No recordings yet</Text>
                 <Text style={[styles.emptyStateSubtext, { color: colors.textDim }]}>Start recording to see your audio files here</Text>
               </View>
             ) : (
               filteredRecordings.map((r) => (
-                <View key={r.id} style={[styles.recordingItem, { backgroundColor: colors.surface, shadowColor: colors.text, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 }]}> 
+                <View key={r.id} style={[styles.recordingItem, { backgroundColor: colors.surface, shadowColor: isDarkMode ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.1)', shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 }]}> 
                   <View style={styles.recordingInfo}>
                     <View style={styles.recordingHeader}>
                       <Text style={[styles.recordingTitle, { color: colors.text }]}>{r.title}</Text>
@@ -1081,13 +1081,13 @@ const RecordingScreen = () => {
               
               <ScrollView style={styles.saveDialogContent} showsVerticalScrollIndicator={false}>
                 {/* Recording Name Section */}
-                <View style={[styles.saveDialogSection, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                <View style={[styles.saveDialogSection, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)', borderColor: colors.border }]}>
                   <View style={styles.saveDialogSectionHeader}>
                     <Ionicons name="create-outline" size={20} color={colors.primary} />
                     <Text style={[styles.saveDialogSectionTitle, { color: colors.text }]}>Recording Name</Text>
                   </View>
                   <TouchableOpacity
-                    style={[styles.saveDialogInput, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                    style={[styles.saveDialogInput, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.03)', borderColor: colors.border }]}
                     onPress={() => {
                       setShowSaveDialog(false);
                       setShowNameRecording(true);
@@ -1101,13 +1101,13 @@ const RecordingScreen = () => {
                 </View>
 
                 {/* Link to Note Section */}
-                <View style={[styles.saveDialogSection, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                <View style={[styles.saveDialogSection, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)', borderColor: colors.border }]}>
                   <View style={styles.saveDialogSectionHeader}>
                     <Ionicons name="document-text-outline" size={20} color={colors.primary} />
                     <Text style={[styles.saveDialogSectionTitle, { color: colors.text }]}>Link to Note</Text>
                   </View>
                   <TouchableOpacity
-                    style={[styles.saveDialogInput, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                    style={[styles.saveDialogInput, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.03)', borderColor: colors.border }]}
                     onPress={() => {
                       setShowSaveDialog(false);
                       setShowNoteLink(true);
@@ -1126,7 +1126,7 @@ const RecordingScreen = () => {
                 </View>
 
                 {/* Recording Info */}
-                <View style={[styles.saveDialogSection, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                <View style={[styles.saveDialogSection, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)', borderColor: colors.border }]}>
                   <View style={styles.saveDialogSectionHeader}>
                     <Ionicons name="information-circle-outline" size={20} color={colors.primary} />
                     <Text style={[styles.saveDialogSectionTitle, { color: colors.text }]}>Recording Info</Text>
@@ -1685,7 +1685,7 @@ const styles = StyleSheet.create({
   },
   audioMeterBar: {
     height: 8,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
     borderRadius: 4,
     overflow: 'hidden',
     marginBottom: 8,
@@ -1788,7 +1788,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#333',
   },
   transcriptionAction: {
     flexDirection: 'row',
@@ -1818,7 +1817,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#2a2a2a',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -2206,7 +2204,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 20,
     // Add subtle shadow for depth
-    shadowColor: '#000',
+    shadowColor: 'rgba(0, 0, 0, 0.1)',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
@@ -2222,7 +2220,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 16,
     // Add subtle background for better section distinction
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
   },
   saveDialogSectionHeader: {
     flexDirection: 'row',
@@ -2243,7 +2240,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     // Add subtle background for better input visibility
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
   },
   saveDialogInputText: {
     flex: 1,
@@ -2289,7 +2285,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     // Add subtle shadow for button depth
-    shadowColor: '#000',
+    shadowColor: 'rgba(0, 0, 0, 0.1)',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -2317,6 +2313,6 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: 20,
   },
- });
+});
 
 export default RecordingScreen;

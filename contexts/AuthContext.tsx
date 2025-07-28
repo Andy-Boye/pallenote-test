@@ -12,15 +12,25 @@ import {
   signIn as apiSignIn,
   signUp as apiSignUp,
   signOut as apiSignOut,
+  verifyOtp as apiVerifyOtp,
+  resendOtp as apiResendOtp,
+  changePassword as apiChangePassword,
+  forgotPassword as apiForgotPassword,
+  resetPassword as apiResetPassword,
 } from "../api/authApi"
-import type { User } from "../api/typesApi"
+import type { User } from "../api/backendTypes"
 
 interface AuthContextType {
   user: User | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
-  signUp: (name: string, email: string, password: string) => Promise<void>
+  signUp: (name: string, email: string, username: string, password: string) => Promise<void>
   signOut: () => Promise<void>
+  verifyOtp: (email: string, otp: string) => Promise<void>
+  resendOtp: (email: string) => Promise<void>
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>
+  forgotPassword: (email: string) => Promise<void>
+  resetPassword: (token: string, newPassword: string) => Promise<void>
   isAuthenticated: boolean
   logout: () => Promise<void>
 }
@@ -64,10 +74,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  const signUp = async (name: string, email: string, password: string) => {
+  const signUp = async (name: string, email: string, username: string, password: string) => {
     try {
       setLoading(true)
-      const authResponse = await apiSignUp(name, email, password)
+      const authResponse = await apiSignUp(name, email, username, password)
       setUser(authResponse.user as User)
       await AsyncStorage.setItem("user", JSON.stringify(authResponse.user))
       await AsyncStorage.setItem("authToken", authResponse.token)
@@ -98,12 +108,83 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await AsyncStorage.removeItem("refreshToken")
   }
 
+  // OTP Verification
+  const verifyOtp = async (email: string, otp: string) => {
+    try {
+      setLoading(true)
+      await apiVerifyOtp(email, otp)
+      // After successful OTP verification, user can proceed to login
+    } catch (error) {
+      console.error("OTP verification error:", error)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Resend OTP
+  const resendOtp = async (email: string) => {
+    try {
+      setLoading(true)
+      await apiResendOtp(email)
+    } catch (error) {
+      console.error("Resend OTP error:", error)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Change Password
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    try {
+      setLoading(true)
+      await apiChangePassword(currentPassword, newPassword)
+    } catch (error) {
+      console.error("Change password error:", error)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Forgot Password
+  const forgotPassword = async (email: string) => {
+    try {
+      setLoading(true)
+      await apiForgotPassword(email)
+    } catch (error) {
+      console.error("Forgot password error:", error)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Reset Password
+  const resetPassword = async (token: string, newPassword: string) => {
+    try {
+      setLoading(true)
+      await apiResetPassword(token, newPassword)
+    } catch (error) {
+      console.error("Reset password error:", error)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const value: AuthContextType = {
     user,
     loading,
     signIn,
     signUp,
     signOut,
+    verifyOtp,
+    resendOtp,
+    changePassword,
+    forgotPassword,
+    resetPassword,
     isAuthenticated: !!user,
     logout,
   }

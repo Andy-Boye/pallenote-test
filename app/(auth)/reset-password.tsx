@@ -1,7 +1,7 @@
 "use client";
 
-import { resetPassword } from "@/api/authApi";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
@@ -37,6 +37,7 @@ const schema = yup.object().shape({
 
 const ResetPasswordScreen = () => {
   const { colors } = useTheme();
+  const { resetPassword } = useAuth();
   const router = useRouter();
   const { token } = useLocalSearchParams<{ token?: string }>();
 
