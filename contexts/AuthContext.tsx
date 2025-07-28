@@ -30,7 +30,7 @@ interface AuthContextType {
   resendOtp: (email: string) => Promise<void>
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>
   forgotPassword: (email: string) => Promise<void>
-  resetPassword: (token: string, newPassword: string) => Promise<void>
+  resetPassword: (email: string, newPassword: string, otpCode: string) => Promise<void>
   isAuthenticated: boolean
   logout: () => Promise<void>
 }
@@ -63,9 +63,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true)
       const authResponse = await apiSignIn(email, password)
-      setUser(authResponse.user as User)
-      await AsyncStorage.setItem("user", JSON.stringify(authResponse.user))
-      await AsyncStorage.setItem("authToken", authResponse.token)
+      
+      // Handle the actual response structure from backend
+      if (authResponse.user) {
+        setUser(authResponse.user as User)
+        await AsyncStorage.setItem("user", JSON.stringify(authResponse.user))
+        await AsyncStorage.setItem("authToken", authResponse.token)
+      } else {
+        // Handle case where login was successful but no user object returned
+        console.log("Login successful but no user object in response")
+      }
     } catch (error) {
       console.error("Sign in error:", error)
       throw error
@@ -162,10 +169,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   // Reset Password
-  const resetPassword = async (token: string, newPassword: string) => {
+  const resetPassword = async (email: string, newPassword: string, otpCode: string) => {
     try {
       setLoading(true)
-      await apiResetPassword(token, newPassword)
+      await apiResetPassword(email, newPassword, otpCode)
     } catch (error) {
       console.error("Reset password error:", error)
       throw error

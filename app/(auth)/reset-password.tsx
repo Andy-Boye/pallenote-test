@@ -22,6 +22,7 @@ import DarkGradientBackground from '../../components/DarkGradientBackground';
 type FormData = {
   newPassword: string;
   confirmPassword: string;
+  otpCode: string;
 };
 
 const schema = yup.object().shape({
@@ -33,13 +34,17 @@ const schema = yup.object().shape({
     .string()
     .oneOf([yup.ref("newPassword")], "Passwords do not match")
     .required("Confirm password is required"),
+  otpCode: yup
+    .string()
+    .required("OTP code is required")
+    .matches(/^\d{4,6}$/, "OTP must be 4-6 digits"),
 });
 
 const ResetPasswordScreen = () => {
   const { colors } = useTheme();
   const { resetPassword } = useAuth();
   const router = useRouter();
-  const { token } = useLocalSearchParams<{ token?: string }>();
+  const { email } = useLocalSearchParams<{ email?: string }>();
 
   const {
     control,
@@ -50,13 +55,13 @@ const ResetPasswordScreen = () => {
   });
 
   const onSubmit = async (data: FormData) => {
-    if (!token) {
-      Alert.alert("Error", "Reset token is missing or invalid.");
+    if (!email) {
+      Alert.alert("Error", "Email is missing or invalid.");
       return;
     }
 
     try {
-      await resetPassword(token, data.newPassword);
+      await resetPassword(email, data.newPassword, data.otpCode);
       Alert.alert("Success", "Password has been reset.", [
         {
           text: "OK",
@@ -134,6 +139,31 @@ const ResetPasswordScreen = () => {
           />
           {errors.confirmPassword && (
             <Text style={styles.error}>{errors.confirmPassword.message}</Text>
+          )}
+
+          <Controller
+            control={control}
+            name="otpCode"
+            render={({ field: { onChange, value } }) => (
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: colors.card,
+                    color: colors.text,
+                    borderColor: errors.otpCode ? 'red' : '#e0e0e0',
+                  },
+                ]}
+                placeholder="Enter OTP code"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="numeric"
+                value={value}
+                onChangeText={onChange}
+              />
+            )}
+          />
+          {errors.otpCode && (
+            <Text style={styles.error}>{errors.otpCode.message}</Text>
           )}
 
           <TouchableOpacity
