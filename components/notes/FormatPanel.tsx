@@ -7,11 +7,25 @@ interface FormatPanelProps {
   visible: boolean;
   onClose: () => void;
   onFormatAction: (action: string) => void;
+  onFormatAction: (action: string) => void;
 }
 const FormatPanel: React.FC<FormatPanelProps> = ({ visible, onClose, onFormatAction }) => {
   const { colors } = useTheme();
 
   const formatOptions = [
+    { icon: 'text', label: 'Font Family', IconComponent: Ionicons, action: 'fontFamily' },
+    { icon: 'type', label: 'Font Size', IconComponent: Feather, action: 'fontSize' },
+    { icon: 'droplet', label: 'Font Color', IconComponent: Feather, action: 'foreColor' },
+    { icon: 'format-subscript', label: 'Subscript', IconComponent: MaterialCommunityIcons, action: 'subscript' },
+    { icon: 'format-superscript', label: 'Superscript', IconComponent: MaterialCommunityIcons, action: 'superscript' },
+    { icon: 'bold', label: 'Bold', IconComponent: Feather, action: 'bold' },
+    { icon: 'italic', label: 'Italic', IconComponent: Feather, action: 'italic' },
+    { icon: 'underline', label: 'Underline', IconComponent: Feather, action: 'underline' },
+    { icon: 'format-strikethrough-variant', label: 'Strikethrough', IconComponent: MaterialCommunityIcons, action: 'strikethrough' },
+    { icon: 'format-align-left', label: 'Align Left', IconComponent: MaterialCommunityIcons, action: 'alignLeft' },
+    { icon: 'format-align-center', label: 'Align Center', IconComponent: MaterialCommunityIcons, action: 'alignCenter' },
+    { icon: 'format-align-right', label: 'Align Right', IconComponent: MaterialCommunityIcons, action: 'alignRight' },
+    { icon: 'link', label: 'Link', IconComponent: Feather, action: 'link' },
     { icon: 'text', label: 'Font Family', IconComponent: Ionicons, action: 'fontFamily' },
     { icon: 'type', label: 'Font Size', IconComponent: Feather, action: 'fontSize' },
     { icon: 'droplet', label: 'Font Color', IconComponent: Feather, action: 'foreColor' },

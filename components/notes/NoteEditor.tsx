@@ -18,6 +18,7 @@ import {
   View
 } from 'react-native';
 import { RichToolbar, actions } from 'react-native-pell-rich-editor';
+import { RichToolbar, actions } from 'react-native-pell-rich-editor';
 
 
 
@@ -103,6 +104,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
 
   // Function to update format state from RichTextEditor
   const updateFormatState = () => {
+    const currentFormatState = pellEditorRef.current?.getFormatState?.();
     const currentFormatState = pellEditorRef.current?.getFormatState?.();
     if (currentFormatState) {
       setFormatState(currentFormatState);
@@ -217,35 +219,42 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
   // Formatting functions
   const toggleBold = () => {
     pellEditorRef.current?.toggleBold();
+    pellEditorRef.current?.toggleBold();
     setTimeout(updateFormatState, 50);
   };
 
   const toggleItalic = () => {
+    pellEditorRef.current?.toggleItalic();
     pellEditorRef.current?.toggleItalic();
     setTimeout(updateFormatState, 50);
   };
 
   const toggleUnderline = () => {
     pellEditorRef.current?.toggleUnderline();
+    pellEditorRef.current?.toggleUnderline();
     setTimeout(updateFormatState, 50);
   };
 
   const toggleStrikethrough = () => {
+    pellEditorRef.current?.toggleStrikethrough();
     pellEditorRef.current?.toggleStrikethrough();
     setTimeout(updateFormatState, 50);
   };
 
   const setAlignmentLeft = () => {
     pellEditorRef.current?.setAlignment('left');
+    pellEditorRef.current?.setAlignment('left');
     setTimeout(updateFormatState, 50);
   };
 
   const setAlignmentCenter = () => {
     pellEditorRef.current?.setAlignment('center');
+    pellEditorRef.current?.setAlignment('center');
     setTimeout(updateFormatState, 50);
   };
 
   const setAlignmentRight = () => {
+    pellEditorRef.current?.setAlignment('right');
     pellEditorRef.current?.setAlignment('right');
     setTimeout(updateFormatState, 50);
   };
@@ -478,10 +487,12 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         <View style={styles.contentContainer}>
           <RichTextEditor
             pellEditorRef={pellEditorRef}
+            pellEditorRef={pellEditorRef}
             value={noteContent}
             onValueChange={setNoteContent}
             placeholder="Start writing..."
             placeholderTextColor={colors.textSecondary}
+            style={{ flex: 1, color: colors.text }}
             style={{ flex: 1, color: colors.text }}
             onFocus={() => setEditorFocused(true)}
             onBlur={() => setEditorFocused(false)}
@@ -588,6 +599,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    backgroundColor: undefined, // will be set by RichToolbar or parent
+    paddingHorizontal: 10,
     backgroundColor: undefined, // will be set by RichToolbar or parent
     paddingHorizontal: 10,
     paddingBottom: 10,
