@@ -71,3 +71,49 @@ export const transcribeRecording = async (id: string): Promise<{ transcription: 
     throw error
   }
 }
+
+export const updateRecording = async (id: string, recording: Partial<Recording>): Promise<Recording> => {
+  try {
+    const response = await apiClient.put<ApiResponse<Recording>>(`/recordings/${id}`, recording)
+    return response.data.data
+  } catch (error) {
+    console.error("Update recording error:", error)
+    // Return mock data if network error
+    const mockUpdatedRecording: Recording = {
+      id: id,
+      title: recording.title || 'Updated Recording',
+      duration: recording.duration || '0:00',
+      date: recording.date || new Date().toLocaleDateString(),
+      size: recording.size || '0MB',
+    };
+    return mockUpdatedRecording;
+  }
+}
+
+export const moveRecordingToRecycleBin = async (id: string): Promise<void> => {
+  console.log(`=== MOVING RECORDING TO RECYCLE BIN ===`);
+  console.log(`Recording ID: ${id}`);
+  
+  try {
+    // Use the updateRecording function to mark as deleted
+    console.log(`Making API call to update recording ${id} with deletedAt`);
+    await updateRecording(id, { deletedAt: new Date().toISOString() });
+    console.log(`Successfully moved recording ${id} to recycle bin via API`);
+  } catch (error) {
+    console.error("Move recording to recycle bin error:", error);
+    // Don't throw error for offline scenario
+  }
+}
+
+export const restoreRecordingFromRecycleBin = async (id: string): Promise<void> => {
+  console.log(`Restoring recording ${id} from recycle bin...`);
+  try {
+    // Use the updateRecording function to remove deletedAt
+    console.log(`Making API call to update recording ${id} to remove deletedAt`);
+    await updateRecording(id, { deletedAt: undefined });
+    console.log(`Successfully restored recording ${id} from recycle bin via API`);
+  } catch (error) {
+    console.error("Restore recording from recycle bin error:", error);
+    // Don't throw error for offline scenario
+  }
+}

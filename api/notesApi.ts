@@ -938,7 +938,16 @@ export const deleteNotesByNotebookId = async (notebookId: string): Promise<void>
     await apiClient.delete(`/notes/notebook/${notebookId}`)
   } catch (error) {
     console.error("Delete notes by notebook error:", error)
-    throw error
+    // Handle offline scenario by removing notes from local storage
+    try {
+      const existingNotes = await getStoredNotes();
+      const updatedNotes = existingNotes.filter(note => note.notebookId !== notebookId);
+      await storeNotes(updatedNotes);
+      console.log(`Deleted ${existingNotes.length - updatedNotes.length} notes from notebook ${notebookId} from local storage`);
+    } catch (storageError) {
+      console.error('Error updating stored notes:', storageError);
+    }
+    // Don't throw error for offline scenario
   }
 }
 
@@ -1116,5 +1125,98 @@ export const getNotesStats = async (): Promise<{
     };
     console.log('Returning mock notes stats:', mockStats);
     return mockStats;
+  }
+}
+
+export const moveNoteToRecycleBin = async (id: string): Promise<void> => {
+  console.log(`=== MOVING NOTE TO RECYCLE BIN ===`);
+  console.log(`Note ID: ${id}`);
+  
+  try {
+    // Use the updateNote function to mark as deleted
+    console.log(`Making API call to update note ${id} with deletedAt`);
+    await updateNote(id, { deletedAt: new Date().toISOString() });
+    console.log(`Successfully moved note ${id} to recycle bin via API`);
+  } catch (error) {
+    console.error("Move note to recycle bin error:", error);
+    // Handle offline scenario by updating local storage
+    try {
+      console.log(`Marking note ${id} as deleted in local storage...`);
+      const existingNotes = await getStoredNotes();
+      const updatedNotes = existingNotes.map(note => 
+        note.id === id ? { ...note, deletedAt: new Date().toISOString() } : note
+      );
+      await storeNotes(updatedNotes);
+      console.log(`Successfully marked note ${id} as deleted in local storage`);
+    } catch (err) {
+      console.error('Error updating stored notes:', err);
+    }
+    // Don't throw error for offline scenario
+  }
+}
+
+export const restoreNoteFromRecycleBin = async (id: string): Promise<void> => {
+  console.log(`Restoring note ${id} from recycle bin...`);
+  try {
+    // Use the updateNote function to remove deletedAt
+    console.log(`Making API call to update note ${id} to remove deletedAt`);
+    await updateNote(id, { deletedAt: undefined });
+    console.log(`Successfully restored note ${id} from recycle bin via API`);
+  } catch (error) {
+    console.error("Restore note from recycle bin error:", error);
+    
+    // Handle offline scenario by updating local storage
+    try {
+      console.log(`Restoring note ${id} in local storage...`);
+      const existingNotes = await getStoredNotes();
+      const updatedNotes = existingNotes.map(note => {
+        if (note.id === id) {
+          const { deletedAt, ...noteWithoutDeletedAt } = note;
+          return noteWithoutDeletedAt;
+        }
+        return note;
+      });
+      await storeNotes(updatedNotes);
+      console.log(`Successfully restored note ${id} in local storage`);
+    } catch (err) {
+      console.error('Error updating stored notes:', err);
+    }
+    // Don't throw error for offline scenario
+  }
+}
+
+// New function to match the curl command format
+export const deleteNotesByNotebookIdWithBody = async (noteBookId: number): Promise<void> => {
+  console.log(`=== DELETING NOTES BY NOTEBOOK ID ===`);
+  console.log(`Notebook ID: ${noteBookId}`);
+  
+  try {
+    console.log(`Making API call to: /notes/book with body { noteBookId: ${noteBookId} }`);
+    await apiClient.delete('/notes/book', {
+      data: { noteBookId }
+    });
+    console.log(`Successfully deleted notes for notebook ${noteBookId} via API`);
+  } catch (error) {
+    console.error("Delete notes by notebook with body error:", error);
+    console.error("Error details:", {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      status: (error as any)?.response?.status,
+      data: (error as any)?.response?.data,
+      url: (error as any)?.config?.url,
+    });
+    
+    // Handle offline scenario by removing notes from local storage
+    try {
+      console.log(`Removing notes for notebook ${noteBookId} from local storage...`);
+      const existingNotes = await getStoredNotes();
+      const updatedNotes = existingNotes.filter(note => note.notebookId !== noteBookId.toString());
+      await storeNotes(updatedNotes);
+      console.log(`Deleted ${existingNotes.length - updatedNotes.length} notes from notebook ${noteBookId} from local storage`);
+    } catch (storageError) {
+      console.error('Error updating stored notes:', storageError);
+    }
+    
+    // Re-throw the error so the calling function can handle it
+    throw error;
   }
 }

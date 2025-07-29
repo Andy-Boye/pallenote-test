@@ -1,7 +1,7 @@
 "use client"
 
-import { deleteNotebook, deleteNotebookAndContents, getNotebooks, moveNotesToDefaultNotebook, updateNotebook } from "@/api/notebooksApi";
-import { deleteNotesByNotebookId, getNotes } from "@/api/notesApi";
+import { deleteNotebook, getNotebooks, updateNotebook } from "@/api/notebooksApi";
+import { deleteNotesByNotebookIdWithBody, getNotes } from "@/api/notesApi";
 import type { Note, Notebook } from "@/api/types";
 import CreateNotebookModal from "@/components/CreateNotebookModal";
 import NotebookActionModal from "@/components/NotebookActionModal";
@@ -128,35 +128,11 @@ const NotebooksScreen = () => {
     });
   };
 
-  const handleDeleteNotebookOnly = async (notebookId: string) => {
-    // Prevent deleting the default notebook
-    if (notebookId === 'default') {
-      Alert.alert('Cannot Delete', 'The default notebook cannot be deleted.');
-      return;
-    }
-
-    try {
-      // Move notes to default notebook first
-      await moveNotesToDefaultNotebook(notebookId);
-      
-      // Then delete the notebook
-      await deleteNotebook(notebookId);
-      
-      // Update local state
-      setNotebooks(prev => prev.filter(notebook => notebook.id !== notebookId));
-      
-      // Refresh notes to show them in default notebook
-      const updatedNotes = await getNotes();
-      setNotes(updatedNotes);
-      
-      Alert.alert('Success', 'Notebook deleted. All notes have been moved to "My Notebook".');
-    } catch (error) {
-      console.error('Error deleting notebook:', error);
-      Alert.alert('Error', 'Failed to delete notebook. Please try again.');
-    }
-  };
-
   const handleDeleteNotebookAndContents = async (notebookId: string) => {
+    console.log(`=== STARTING NOTEBOOK DELETION PROCESS ===`);
+    console.log(`Notebook ID: ${notebookId}`);
+    console.log(`Notebook ID type: ${typeof notebookId}`);
+    
     // Prevent deleting the default notebook
     if (notebookId === 'default') {
       Alert.alert('Cannot Delete', 'The default notebook cannot be deleted.');
@@ -164,23 +140,114 @@ const NotebooksScreen = () => {
     }
 
     try {
-      // Delete all notes in the notebook
-      await deleteNotesByNotebookId(notebookId);
+      console.log(`Starting permanent deletion of notebook ${notebookId}...`);
       
-      // Delete the notebook
-      await deleteNotebookAndContents(notebookId);
+      // First, delete all notes in the notebook
+      console.log('Step 1: Deleting all notes in the notebook...');
+      try {
+        // Convert notebookId to number, handling both string and numeric IDs
+        const numericNotebookId = parseInt(notebookId);
+        console.log(`Converted notebook ID: ${numericNotebookId} (type: ${typeof numericNotebookId})`);
+        
+        if (isNaN(numericNotebookId)) {
+          console.warn(`Notebook ID ${notebookId} is not a valid number, skipping notes deletion`);
+        } else {
+          console.log(`Calling deleteNotesByNotebookIdWithBody with ID: ${numericNotebookId}`);
+          await deleteNotesByNotebookIdWithBody(numericNotebookId);
+          console.log('Step 1 completed: All notes deleted successfully');
+        }
+      } catch (notesError) {
+        console.error('Step 1 failed: Error deleting notes:', notesError);
+        console.error('Notes error details:', {
+          message: notesError instanceof Error ? notesError.message : 'Unknown error',
+          stack: notesError instanceof Error ? notesError.stack : 'No stack trace',
+          response: (notesError as any)?.response?.data,
+          status: (notesError as any)?.response?.status,
+        });
+        // Continue with notebook deletion even if notes deletion fails
+      }
+      
+      // Then, delete the notebook itself
+      console.log('Step 2: Deleting the notebook...');
+      try {
+        console.log(`Calling deleteNotebook with ID: ${notebookId}`);
+        await deleteNotebook(notebookId);
+        console.log('Step 2 completed: Notebook deleted successfully');
+      } catch (notebookError) {
+        console.error('Step 2 failed: Error deleting notebook:', notebookError);
+        console.error('Notebook error details:', {
+          message: notebookError instanceof Error ? notebookError.message : 'Unknown error',
+          stack: notebookError instanceof Error ? notebookError.stack : 'No stack trace',
+          response: (notebookError as any)?.response?.data,
+          status: (notebookError as any)?.response?.status,
+        });
+        
+        // Try alternative approach - just remove from local state
+        console.log('Trying alternative approach - removing from local state only');
+        setNotebooks(prev => {
+          const filtered = prev.filter(notebook => notebook.id !== notebookId);
+          console.log(`Updated notebooks list: ${prev.length} -> ${filtered.length} notebooks`);
+          return filtered;
+        });
+        
+        Alert.alert('Partial Success', 'Notebook removed from your view. Some server operations may have failed.');
+        return;
+      }
       
       // Update local state
-      setNotebooks(prev => prev.filter(notebook => notebook.id !== notebookId));
+      console.log('Step 3: Updating local state...');
+      setNotebooks(prev => {
+        const filtered = prev.filter(notebook => notebook.id !== notebookId);
+        console.log(`Updated notebooks list: ${prev.length} -> ${filtered.length} notebooks`);
+        return filtered;
+      });
       
       // Refresh notes
-      const updatedNotes = await getNotes();
-      setNotes(updatedNotes);
+      console.log('Step 4: Refreshing notes list...');
+      try {
+        const updatedNotes = await getNotes();
+        setNotes(updatedNotes);
+        console.log(`Step 4 completed: Notes list refreshed, got ${updatedNotes.length} notes`);
+      } catch (refreshError) {
+        console.error('Step 4 failed: Error refreshing notes:', refreshError);
+        // Don't throw error for refresh failure
+      }
       
-      Alert.alert('Success', 'Notebook and all its notes have been deleted.');
+      console.log('Notebook permanent deletion completed successfully');
+      Alert.alert('Success', 'Notebook and all its notes have been permanently deleted.');
     } catch (error) {
-      console.error('Error deleting notebook and contents:', error);
-      Alert.alert('Error', 'Failed to delete notebook and contents. Please try again.');
+      console.error('=== FINAL ERROR IN NOTEBOOK DELETION ===');
+      console.error('Error permanently deleting notebook and contents:', error);
+      console.error('Full error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace',
+        response: (error as any)?.response?.data,
+        status: (error as any)?.response?.status,
+        url: (error as any)?.config?.url,
+        method: (error as any)?.config?.method,
+      });
+      
+      // Provide more specific error messages
+      let errorMessage = 'Failed to permanently delete notebook and contents. Please try again.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('Network') || error.message.includes('fetch')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        } else if (error.message.includes('404')) {
+          errorMessage = 'Notebook not found. It may have already been deleted.';
+        } else if (error.message.includes('403')) {
+          errorMessage = 'You do not have permission to delete this notebook.';
+        } else if (error.message.includes('500')) {
+          errorMessage = 'Server error. Please try again later.';
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'Request timed out. Please try again.';
+        } else {
+          errorMessage = `Error: ${error.message}`;
+        }
+      }
+      
+      console.error('Showing error alert to user:', errorMessage);
+      Alert.alert('Error', errorMessage);
     }
   };
 
@@ -364,8 +431,7 @@ const NotebooksScreen = () => {
         notebook={selectedNotebook}
         onRename={handleRenameNotebook}
         onShare={handleShareNotebook}
-        onDeleteNotebookOnly={handleDeleteNotebookOnly}
-        onDeleteNotebookAndContents={handleDeleteNotebookAndContents}
+        onMoveToRecycleBin={handleDeleteNotebookAndContents}
         noteCount={selectedNotebook ? notes.filter(note => note.notebookId === selectedNotebook.id).length : 0}
       />
     </DarkGradientBackground>

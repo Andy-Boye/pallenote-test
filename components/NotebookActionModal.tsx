@@ -10,7 +10,6 @@ interface NotebookActionModalProps {
   notebook: Notebook | null;
   onRename: (notebookId: string, newTitle: string) => Promise<void>;
   onShare: (notebook: Notebook) => void;
-  onDeleteNotebookOnly: (notebookId: string) => Promise<void>;
   onDeleteNotebookAndContents: (notebookId: string) => Promise<void>;
   noteCount?: number;
 }
@@ -21,7 +20,6 @@ const NotebookActionModal: React.FC<NotebookActionModalProps> = ({
   notebook,
   onRename,
   onShare,
-  onDeleteNotebookOnly,
   onDeleteNotebookAndContents,
   noteCount = 0,
 }) => {
@@ -50,47 +48,23 @@ const NotebookActionModal: React.FC<NotebookActionModalProps> = ({
     }
   };
 
-  const handleDeleteNotebookOnly = () => {
+  const handleDeleteNotebook = () => {
     if (!notebook) return;
     
     Alert.alert(
-      'Delete Notebook',
-      `Are you sure you want to delete "${notebook.title}"? All notes will be moved to "My Notebook".`,
+      'Permanently Delete Notebook',
+      `Are you sure you want to permanently delete "${notebook.title}" and ALL its ${noteCount} ${noteCount === 1 ? 'note' : 'notes'}? This action cannot be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await onDeleteNotebookOnly(notebook.id);
-              onClose();
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete notebook');
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const handleDeleteNotebookAndContents = () => {
-    if (!notebook) return;
-    
-    Alert.alert(
-      'Delete Notebook and Contents',
-      `Are you sure you want to delete "${notebook.title}" and ALL its notes? This action cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete All',
+          text: 'Delete Permanently',
           style: 'destructive',
           onPress: async () => {
             try {
               await onDeleteNotebookAndContents(notebook.id);
               onClose();
             } catch (error) {
-              Alert.alert('Error', 'Failed to delete notebook and contents');
+              Alert.alert('Error', 'Failed to delete notebook');
             }
           },
         },
@@ -196,28 +170,6 @@ const NotebookActionModal: React.FC<NotebookActionModalProps> = ({
 
               <TouchableOpacity
                 style={[
-                  styles.actionItem, 
-                  { borderBottomColor: colors.border },
-                  notebook.id === 'default' && { opacity: 0.5 }
-                ]}
-                onPress={() => {
-                  if (notebook.id === 'default') {
-                    Alert.alert('Cannot Delete', 'The default notebook cannot be deleted.');
-                    return;
-                  }
-                  handleDeleteNotebookOnly();
-                }}
-                disabled={notebook.id === 'default'}
-              >
-                <Ionicons name="folder-open-outline" size={24} color="#FF9500" />
-                <Text style={[styles.actionText, { color: colors.text }]}>
-                  {notebook.id === 'default' ? 'Delete Notebook (Disabled)' : 'Delete Notebook (Keep Notes)'}
-                </Text>
-                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
                   styles.actionItem,
                   notebook.id === 'default' && { opacity: 0.5 }
                 ]}
@@ -226,13 +178,13 @@ const NotebookActionModal: React.FC<NotebookActionModalProps> = ({
                     Alert.alert('Cannot Delete', 'The default notebook cannot be deleted.');
                     return;
                   }
-                  handleDeleteNotebookAndContents();
+                  handleDeleteNotebook();
                 }}
                 disabled={notebook.id === 'default'}
               >
                 <Ionicons name="trash-outline" size={24} color="#FF3B30" />
                 <Text style={[styles.actionText, { color: '#FF3B30' }]}>
-                  {notebook.id === 'default' ? 'Delete Notebook & All Notes (Disabled)' : 'Delete Notebook & All Notes'}
+                  {notebook.id === 'default' ? 'Delete Notebook (Disabled)' : 'Delete Notebook'}
                 </Text>
                 <Ionicons name="chevron-forward" size={20} color="#FF3B30" />
               </TouchableOpacity>

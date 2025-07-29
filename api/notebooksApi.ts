@@ -6,7 +6,7 @@ import type { ApiResponse } from "./types";
 // Store for newly created notebooks
 let newlyCreatedNotebooks: Notebook[] = [];
 
-export const getNotebooks = async (): Promise<Notebook[]> => {
+export const getNotebooks = async (includeDeleted: boolean = false): Promise<Notebook[]> => {
   try {
     // Get current user ID
     const userId = await getCurrentUserId();
@@ -15,7 +15,7 @@ export const getNotebooks = async (): Promise<Notebook[]> => {
     }
     
     // Add user filtering to the request
-    const response = await apiClient.get<ApiResponse<Notebook[]>>(`/notebooks?userId=${userId}`)
+    const response = await apiClient.get<ApiResponse<Notebook[]>>(`/notebooks?userId=${userId}&includeDeleted=${includeDeleted}`)
     return response.data.data
   } catch (error) {
     console.error("Get notebooks error:", error)
@@ -64,7 +64,13 @@ export const getNotebooks = async (): Promise<Notebook[]> => {
     ];
     
     // Combine base notebooks with newly created ones
-    const allNotebooks = [...baseNotebooks, ...newlyCreatedNotebooks];
+    let allNotebooks = [...baseNotebooks, ...newlyCreatedNotebooks];
+    
+    // Filter out deleted notebooks unless includeDeleted is true
+    if (!includeDeleted) {
+      allNotebooks = allNotebooks.filter(notebook => !notebook.deletedAt);
+    }
+    
     console.log('GetNotebooks - All notebooks:', allNotebooks);
     return allNotebooks;
   }
@@ -228,40 +234,77 @@ export const updateNotebook = async (id: string, notebook: Partial<Notebook>): P
 }
 
 export const deleteNotebook = async (id: string): Promise<void> => {
+  console.log(`=== DELETING NOTEBOOK ===`);
+  console.log(`Notebook ID: ${id}`);
+  
   try {
-    await apiClient.delete(`/notebooks/${id}`)
+    console.log(`Making API call to: /notebooks/${id}`);
+    await apiClient.delete(`/notebooks/${id}`);
+    console.log(`Successfully deleted notebook ${id} via API`);
   } catch (error) {
-    console.error("Delete notebook error:", error)
+    console.error("Delete notebook error:", error);
+    console.error("Error details:", {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      status: (error as any)?.response?.status,
+      data: (error as any)?.response?.data,
+      url: (error as any)?.config?.url,
+    });
+    
     // Handle offline scenario by removing from local storage
     try {
+      console.log(`Removing notebook ${id} from local storage...`);
       const storedNotebooks = await AsyncStorage.getItem('newlyCreatedNotebooks');
       if (storedNotebooks) {
         newlyCreatedNotebooks = JSON.parse(storedNotebooks);
         newlyCreatedNotebooks = newlyCreatedNotebooks.filter(nb => nb.id !== id);
         await AsyncStorage.setItem('newlyCreatedNotebooks', JSON.stringify(newlyCreatedNotebooks));
+        console.log(`Successfully removed notebook ${id} from local storage`);
       }
     } catch (err) {
       console.error('Error updating stored notebooks:', err);
     }
-    // Don't throw error for offline scenario
+    
+    // Re-throw the error so the calling function can handle it
+    throw error;
   }
 }
 
 export const deleteNotebookAndContents = async (id: string): Promise<void> => {
+  console.log(`Attempting to delete notebook ${id} and its contents...`);
   try {
-    await apiClient.delete(`/notebooks/${id}/with-contents`)
+    console.log(`Making API call to: /notebooks/${id}/with-contents`);
+    await apiClient.delete(`/notebooks/${id}/with-contents`);
+    console.log(`Successfully deleted notebook ${id} and its contents via API`);
   } catch (error) {
-    console.error("Delete notebook and contents error:", error)
-    // Handle offline scenario by removing from local storage
+    console.error("Delete notebook and contents error:", error);
+    console.error("Error details:", {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      status: (error as any)?.response?.status,
+      data: (error as any)?.response?.data,
+      url: (error as any)?.config?.url,
+    });
+    
+    // Try fallback to simple delete endpoint
     try {
-      const storedNotebooks = await AsyncStorage.getItem('newlyCreatedNotebooks');
-      if (storedNotebooks) {
-        newlyCreatedNotebooks = JSON.parse(storedNotebooks);
-        newlyCreatedNotebooks = newlyCreatedNotebooks.filter(nb => nb.id !== id);
-        await AsyncStorage.setItem('newlyCreatedNotebooks', JSON.stringify(newlyCreatedNotebooks));
+      console.log(`Trying fallback endpoint: /notebooks/${id}`);
+      await apiClient.delete(`/notebooks/${id}`);
+      console.log(`Successfully deleted notebook ${id} via fallback endpoint`);
+    } catch (fallbackError) {
+      console.error("Fallback delete notebook error:", fallbackError);
+      
+      // Handle offline scenario by removing from local storage
+      try {
+        console.log(`Removing notebook ${id} from local storage...`);
+        const storedNotebooks = await AsyncStorage.getItem('newlyCreatedNotebooks');
+        if (storedNotebooks) {
+          newlyCreatedNotebooks = JSON.parse(storedNotebooks);
+          newlyCreatedNotebooks = newlyCreatedNotebooks.filter(nb => nb.id !== id);
+          await AsyncStorage.setItem('newlyCreatedNotebooks', JSON.stringify(newlyCreatedNotebooks));
+          console.log(`Successfully removed notebook ${id} from local storage`);
+        }
+      } catch (err) {
+        console.error('Error updating stored notebooks:', err);
       }
-    } catch (err) {
-      console.error('Error updating stored notebooks:', err);
     }
     // Don't throw error for offline scenario
   }
@@ -274,5 +317,135 @@ export const moveNotesToDefaultNotebook = async (notebookId: string): Promise<vo
     console.error("Move notes to default notebook error:", error)
     // Handle offline scenario - in mock data, notes are already associated with notebooks
     // No action needed for offline scenario
+  }
+}
+
+export const moveNotebookToRecycleBin = async (id: string): Promise<void> => {
+  console.log(`=== MOVING NOTEBOOK TO RECYCLE BIN ===`);
+  console.log(`Notebook ID: ${id}`);
+  
+  try {
+    // Use the updateNotebook function to mark as deleted
+    console.log(`Making API call to update notebook ${id} with deletedAt`);
+    await updateNotebook(id, { deletedAt: new Date().toISOString() });
+    console.log(`Successfully moved notebook ${id} to recycle bin via API`);
+  } catch (error) {
+    console.error("Move notebook to recycle bin error:", error);
+    console.error("Error details:", {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      status: (error as any)?.response?.status,
+      data: (error as any)?.response?.data,
+      url: (error as any)?.config?.url,
+    });
+    
+    // Handle offline scenario by updating local storage
+    try {
+      console.log(`Marking notebook ${id} as deleted in local storage...`);
+      const storedNotebooks = await AsyncStorage.getItem('newlyCreatedNotebooks');
+      if (storedNotebooks) {
+        newlyCreatedNotebooks = JSON.parse(storedNotebooks);
+        console.log(`Current stored notebooks:`, newlyCreatedNotebooks);
+        
+        const notebookIndex = newlyCreatedNotebooks.findIndex(nb => nb.id === id);
+        console.log(`Found notebook at index: ${notebookIndex}`);
+        
+        if (notebookIndex !== -1) {
+          const updatedNotebook = {
+            ...newlyCreatedNotebooks[notebookIndex],
+            deletedAt: new Date().toISOString()
+          };
+          newlyCreatedNotebooks[notebookIndex] = updatedNotebook;
+          
+          await AsyncStorage.setItem('newlyCreatedNotebooks', JSON.stringify(newlyCreatedNotebooks));
+          console.log(`Successfully marked notebook ${id} as deleted in local storage`);
+          console.log(`Updated notebook:`, updatedNotebook);
+          console.log(`All stored notebooks after update:`, newlyCreatedNotebooks);
+        } else {
+          console.log(`Notebook ${id} not found in stored notebooks`);
+        }
+      } else {
+        console.log(`No stored notebooks found in AsyncStorage`);
+      }
+    } catch (err) {
+      console.error('Error updating stored notebooks:', err);
+    }
+    // Don't throw error for offline scenario
+  }
+}
+
+export const restoreNotebookFromRecycleBin = async (id: string): Promise<void> => {
+  console.log(`Restoring notebook ${id} from recycle bin...`);
+  try {
+    // Use the updateNotebook function to remove deletedAt
+    console.log(`Making API call to update notebook ${id} to remove deletedAt`);
+    await updateNotebook(id, { deletedAt: undefined });
+    console.log(`Successfully restored notebook ${id} from recycle bin via API`);
+  } catch (error) {
+    console.error("Restore notebook from recycle bin error:", error);
+    
+    // Handle offline scenario by updating local storage
+    try {
+      console.log(`Restoring notebook ${id} in local storage...`);
+      const storedNotebooks = await AsyncStorage.getItem('newlyCreatedNotebooks');
+      if (storedNotebooks) {
+        newlyCreatedNotebooks = JSON.parse(storedNotebooks);
+        const notebookIndex = newlyCreatedNotebooks.findIndex(nb => nb.id === id);
+        if (notebookIndex !== -1) {
+          const { deletedAt, ...notebookWithoutDeletedAt } = newlyCreatedNotebooks[notebookIndex];
+          newlyCreatedNotebooks[notebookIndex] = notebookWithoutDeletedAt;
+          await AsyncStorage.setItem('newlyCreatedNotebooks', JSON.stringify(newlyCreatedNotebooks));
+          console.log(`Successfully restored notebook ${id} in local storage`);
+        }
+      }
+    } catch (err) {
+      console.error('Error updating stored notebooks:', err);
+    }
+    // Don't throw error for offline scenario
+  }
+}
+
+export const permanentlyDeleteNotebook = async (id: string): Promise<void> => {
+  console.log(`Permanently deleting notebook ${id} from recycle bin...`);
+  try {
+    // Use the existing deleteNotebook function
+    console.log(`Making API call to permanently delete notebook ${id}`);
+    await deleteNotebook(id);
+    console.log(`Successfully permanently deleted notebook ${id} via API`);
+  } catch (error) {
+    console.error("Permanently delete notebook error:", error);
+    
+    // Handle offline scenario by removing from local storage
+    try {
+      console.log(`Removing notebook ${id} from local storage...`);
+      const storedNotebooks = await AsyncStorage.getItem('newlyCreatedNotebooks');
+      if (storedNotebooks) {
+        newlyCreatedNotebooks = JSON.parse(storedNotebooks);
+        newlyCreatedNotebooks = newlyCreatedNotebooks.filter(nb => nb.id !== id);
+        await AsyncStorage.setItem('newlyCreatedNotebooks', JSON.stringify(newlyCreatedNotebooks));
+        console.log(`Successfully removed notebook ${id} from local storage`);
+      }
+    } catch (err) {
+      console.error('Error updating stored notebooks:', err);
+    }
+    // Don't throw error for offline scenario
+  }
+}
+
+export const getRecycleBinNotebooks = async (): Promise<Notebook[]> => {
+  try {
+    console.log('getRecycleBinNotebooks - Fetching all notebooks including deleted...');
+    // Use the existing getNotebooks function with includeDeleted=true
+    const allNotebooks = await getNotebooks(true);
+    
+    // Filter only deleted notebooks
+    const deletedNotebooks = allNotebooks.filter(notebook => notebook.deletedAt);
+    console.log('getRecycleBinNotebooks - All notebooks:', allNotebooks);
+    console.log('getRecycleBinNotebooks - Deleted notebooks:', deletedNotebooks);
+    return deletedNotebooks;
+  } catch (error) {
+    console.error("Get recycle bin notebooks error:", error);
+    
+    // Return empty array if there's an error
+    return [];
   }
 }

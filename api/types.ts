@@ -33,6 +33,7 @@ export interface CalendarEvent {
 export interface Notebook {
   id: string;
   title: string;
+  deletedAt?: string; // when notebook was moved to recycle bin
   // Add more fields as needed
 }
 
@@ -44,6 +45,7 @@ export interface Note {
   date: string;
   createdAt?: string;
   updatedAt?: string;
+  deletedAt?: string; // when note was moved to recycle bin
   // Add more fields as needed
 }
 
@@ -53,6 +55,7 @@ export interface Recording {
   duration: string;
   date: string;
   size: string;
+  deletedAt?: string; // when recording was moved to recycle bin
   // Add more fields as needed
 }
 
@@ -64,6 +67,7 @@ export interface Task {
   dueDate?: string;
   createdAt?: string;
   updatedAt?: string;
+  deletedAt?: string; // when task was moved to recycle bin
   // Add more fields as needed
 }
 

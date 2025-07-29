@@ -27,6 +27,7 @@ export interface Notebook {
   isDefault: boolean;
   createdAt: string; // date only string
   updatedAt?: string;
+  deletedAt?: string; // when notebook was moved to recycle bin
 }
 
 // Note
