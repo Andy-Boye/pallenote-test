@@ -1,6 +1,6 @@
-import { apiClient } from "./config"
-import type { AuthResponse, ApiResponse } from "./types"
 import AsyncStorage from "@react-native-async-storage/async-storage"
+import { apiClient } from "./config"
+import type { ApiResponse, AuthResponse } from "./types"
 
 export const signIn = async (email: string, password: string): Promise<AuthResponse> => {
   try {
@@ -14,28 +14,7 @@ export const signIn = async (email: string, password: string): Promise<AuthRespo
 
     console.log('Login response:', response.data)
 
-    // Handle the actual response structure from backend
-    if (response.data.authToken) {
-      await AsyncStorage.setItem("authToken", response.data.authToken)
-      // Create a user object from the response
-      const user = {
-        id: response.data.email, // Using email as ID for now
-        fullName: response.data.username || '',
-        email: response.data.email,
-        username: response.data.username,
-        password: '', // Not returned from login
-        profile: response.data.profile,
-        isVerified: true, // Assuming verified since login worked
-        is2faOn: response.data.twoFA || false
-      }
-      
-      return {
-        user,
-        token: response.data.authToken,
-        refreshToken: response.data.authToken // Using same token for now
-      }
-    }
-
+    // Return the actual response structure from backend
     return response.data
   } catch (error: any) {
     console.error("Sign in error details:", {
@@ -62,18 +41,8 @@ export const signUp = async (fullName: string, email: string, username: string, 
 
     console.log('Signup response:', response.data)
 
-    // Handle the case where signup is successful but requires verification
-    if (response.data.success) {
-      // If there's a token in the response, store it
-      if (response.data.data?.token) {
-        await AsyncStorage.setItem("authToken", response.data.data.token)
-        await AsyncStorage.setItem("refreshToken", response.data.data.refreshToken)
-      }
-      // Return the response data, even if it's just a message
-      return response.data.data || { message: response.data.message }
-    }
-
-    return response.data.data
+    // Return the actual response structure from backend
+    return response.data.data || response.data
   } catch (error: any) {
     console.error("Sign up error details:", {
       message: error.message,
@@ -213,10 +182,16 @@ export const resendOtp = async (email: string): Promise<{ message: string }> => 
 // Change Password (for logged-in users)
 export const changePassword = async (currentPassword: string, newPassword: string): Promise<{ message: string }> => {
   try {
-    const response = await apiClient.patch<ApiResponse<{ message: string }>>("/auth/change-password", {
-      currentPassword,
-      newPassword,
+    console.log('Attempting change password with URL:', `${apiClient.defaults.baseURL}/account/change-password`)
+    console.log('Request body:', { oldPasswd: currentPassword, newPasswd: newPassword })
+    
+    const response = await apiClient.patch<ApiResponse<{ message: string }>>("/account/change-password", {
+      oldPasswd: currentPassword,
+      newPasswd: newPassword,
     })
+    
+    console.log('Change password response:', response.data)
+    
     return response.data.data
   } catch (error: any) {
     console.error("Change password error details:", {
@@ -300,4 +275,139 @@ export const testForgotPasswordEndpoints = async (email: string): Promise<void> 
     }
   }
   console.log("❌ All forgot password endpoints failed")
+}
+
+// Test change password endpoint
+export const testChangePasswordEndpoint = async (): Promise<void> => {
+  try {
+    console.log('Testing change password endpoint...')
+    const response = await apiClient.patch("/account/change-password", {
+      oldPasswd: "test123",
+      newPasswd: "test456",
+    })
+    console.log('✅ Change password endpoint works:', response.data)
+  } catch (error: any) {
+    console.log('❌ Change password endpoint failed:', error.response?.status, error.response?.data)
+  }
+}
+
+// Test account endpoints
+export const testAccountEndpoints = async (): Promise<void> => {
+  const endpoints = [
+    "/account",
+    "/account/profile",
+    "/account/settings",
+    "/account/info",
+    "/account/details"
+  ]
+  
+  console.log('Testing account endpoints...')
+  
+  for (const endpoint of endpoints) {
+    try {
+      console.log(`Testing endpoint: ${endpoint}`)
+      const response = await apiClient.get(endpoint)
+      console.log(`✅ ${endpoint} works:`, response.data)
+    } catch (error: any) {
+      console.log(`❌ ${endpoint} failed:`, error.response?.status, error.response?.data)
+    }
+  }
+}
+
+// Get account information
+export const getAccountInfo = async (): Promise<any> => {
+  try {
+    console.log('Getting account info from:', `${apiClient.defaults.baseURL}/account`)
+    const response = await apiClient.get<ApiResponse<any>>("/account")
+    console.log('Account info response:', response.data)
+    return response.data.data
+  } catch (error: any) {
+    console.error("Get account info error details:", {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data
+    })
+    throw error
+  }
+}
+
+// Update account settings
+export const updateAccountSettings = async (settings: any): Promise<any> => {
+  try {
+    console.log('Updating account settings with URL:', `${apiClient.defaults.baseURL}/account`)
+    console.log('Request body:', settings)
+    
+    const response = await apiClient.patch<ApiResponse<any>>("/account", settings)
+    console.log('Update account settings response:', response.data)
+    
+    return response.data.data
+  } catch (error: any) {
+    console.error("Update account settings error details:", {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data
+    })
+    throw error
+  }
+}
+
+// Delete account
+export const deleteAccount = async (): Promise<{ message: string }> => {
+  try {
+    console.log('Deleting account with URL:', `${apiClient.defaults.baseURL}/account`)
+    
+    const response = await apiClient.delete<ApiResponse<{ message: string }>>("/account")
+    console.log('Delete account response:', response.data)
+    
+    return response.data.data
+  } catch (error: any) {
+    console.error("Delete account error details:", {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data
+    })
+    throw error
+  }
+}
+
+// Get account profile
+export const getAccountProfile = async (): Promise<{ email: string; username: string; profile?: string }> => {
+  try {
+    console.log('Getting account profile from:', `${apiClient.defaults.baseURL}/account/profile`)
+    const response = await apiClient.get<ApiResponse<{ email: string; username: string; profile?: string }>>("/account/profile")
+    console.log('Account profile response:', response.data)
+    return response.data.data
+  } catch (error: any) {
+    console.error("Get account profile error details:", {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data
+    })
+    throw error
+  }
+}
+
+// Update account profile
+export const updateAccountProfile = async (profile: { email?: string; username?: string; profile?: string }): Promise<{ email: string; username: string; profile?: string }> => {
+  try {
+    console.log('Updating account profile with URL:', `${apiClient.defaults.baseURL}/account/profile`)
+    console.log('Request body:', profile)
+    
+    const response = await apiClient.patch<ApiResponse<{ email: string; username: string; profile?: string }>>("/account/profile", profile)
+    console.log('Update account profile response:', response.data)
+    
+    return response.data.data
+  } catch (error: any) {
+    console.error("Update account profile error details:", {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data
+    })
+    throw error
+  }
 }

@@ -1,7 +1,8 @@
+import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Tabs } from 'expo-router';
-import React from 'react';
+import { Tabs, useRouter } from 'expo-router';
+import React, { useEffect } from 'react';
 import DarkGradientBackground from '../../components/DarkGradientBackground';
 
 function TabBarIcon(props: { name: React.ComponentProps<typeof FontAwesome>['name']; color: string }) {
@@ -10,6 +11,24 @@ function TabBarIcon(props: { name: React.ComponentProps<typeof FontAwesome>['nam
 
 export default function TabLayout() {
   const { isDarkMode, colors } = useTheme();
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    console.log('TabsLayout: Auth state - user:', user, 'loading:', loading);
+    if (!loading && !user) {
+      console.log('TabsLayout: User not authenticated, redirecting to login');
+      // Redirect to login if user is not authenticated
+      router.replace('/(auth)/login');
+    } else if (!loading && user) {
+      console.log('TabsLayout: User authenticated, allowing access to tabs');
+    }
+  }, [user, loading, router]);
+
+  // Don't render tabs if user is not authenticated
+  if (loading || !user) {
+    return null;
+  }
 
   return (
     <DarkGradientBackground>

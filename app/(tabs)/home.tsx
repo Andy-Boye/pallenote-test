@@ -1,18 +1,20 @@
 import { getNotes } from "@/api/notesApi";
 import { getTasks } from "@/api/tasksApi";
-import type { Note, Task, Recording } from "@/api/types";
+import type { Note, Recording, Task } from "@/api/types";
 import FloatingActionButton from '@/components/FloatingActionButton';
 import RichNoteCard from '@/components/notes/RichNoteCard';
+import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Alert, Animated, Dimensions, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import DarkGradientBackground from '../../components/DarkGradientBackground';
 
 const HomeScreen = () => {
   const { colors, isDarkMode } = useTheme()
+  const { user } = useAuth()
   const [searchText, setSearchText] = useState("")
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [drawerAnim] = useState(new Animated.Value(-Dimensions.get('window').width * 0.5))
@@ -268,6 +270,16 @@ const HomeScreen = () => {
     return "Good evening";
   }
 
+  const getUserDisplayName = () => {
+    if (user?.username) {
+      return user.username;
+    } else if (user?.email) {
+      // Extract name from email (before @ symbol)
+      return user.email.split('@')[0];
+    }
+    return "User";
+  }
+
   // Wave animation effect - Simplified and more reliable
   useEffect(() => {
     const wave = () => {
@@ -336,7 +348,7 @@ const HomeScreen = () => {
               {getGreeting()}
             </Text>
             <Text style={[styles.userName, { color: colors.text }]} className="font-[InterBold]">
-              John! <Animated.Text style={{ transform: [{ rotate: waveRotation }] }}>👋</Animated.Text>
+              {getUserDisplayName()}! <Animated.Text style={{ transform: [{ rotate: waveRotation }] }}>👋</Animated.Text>
             </Text>
           </View>
           
@@ -620,10 +632,10 @@ const HomeScreen = () => {
                 <Ionicons name="person" size={40} color="white" />
               </View>
               <Text style={[styles.profileName, { color: colors.text }]} className="font-[InterBold]">
-                John Doe
+                {getUserDisplayName()}
               </Text>
               <Text style={[styles.profileEmail, { color: colors.textSecondary }]} className="font-[Inter]">
-                john@example.com
+                {user?.email || 'No email'}
               </Text>
               <View style={[styles.profileStatus, { backgroundColor: colors.success }]}>
                 <Text style={styles.profileStatusText} className="font-[InterMedium]">
@@ -650,7 +662,15 @@ const HomeScreen = () => {
               <TouchableOpacity
                 key={item.path}
                 style={[styles.drawerOption, { borderBottomColor: colors.border }]}
-                onPress={() => { closeDrawer(); router.push(item.path as any); }}
+                onPress={() => { 
+                  closeDrawer(); 
+                  try {
+                    router.push(item.path as any);
+                  } catch (error) {
+                    console.error('Navigation error:', error);
+                    Alert.alert('Error', 'Could not navigate to this page');
+                  }
+                }}
               >
                 <View style={[styles.drawerIcon, { backgroundColor: colors.accent }]}>
                   <Ionicons 

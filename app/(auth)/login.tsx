@@ -39,8 +39,13 @@ const LoginScreen = () => {
 
   const onSubmit = async (data: { email: string; password: string }) => {
     try {
+      console.log('Login attempt with:', data.email);
       await signIn(data.email, data.password);
-    } catch {
+      console.log('Login successful, navigating to home');
+      // Navigate to home screen after successful login
+      router.replace('/(tabs)/home');
+    } catch (error) {
+      console.error('Login error:', error);
       Alert.alert("Login Failed", "Invalid email or password");
     }
   };

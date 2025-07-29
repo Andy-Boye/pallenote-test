@@ -108,8 +108,14 @@ const SplashScreen = () => {
           duration: 500,
           useNativeDriver: true,
         }).start(() => {
-          // Always go to onboarding first, then welcome, then home
-          router.replace('/(onboarding)/OnboardingScreen')
+          // Navigate based on authentication status
+          if (user) {
+            // User is authenticated, go to home
+            router.replace('/(tabs)/home')
+          } else {
+            // User is not authenticated, go to onboarding
+            router.replace('/(onboarding)/OnboardingScreen')
+          }
         })
       }, 3000)
 

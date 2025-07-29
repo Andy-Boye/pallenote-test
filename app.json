@@ -48,6 +48,13 @@
           "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone to record audio.",
           "enableMicrophonePermission": true
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow $(PRODUCT_NAME) to access your photos to select profile images.",
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera to take profile photos."
+        }
       ]
     ],
     "experiments": {

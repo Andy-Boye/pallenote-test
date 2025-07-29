@@ -2,14 +2,15 @@
 
 // User
 export interface User {
-  id: string; // or number, if you want to keep it as long
-  fullName: string;
+  id?: string; // or number, if you want to keep it as long
+  fullName?: string;
   email: string;
   username?: string | null;
-  password: string; // usually not sent to frontend!
-  profile: string; // URL
-  isVerified: boolean;
-  is2faOn: boolean;
+  password?: string; // usually not sent to frontend!
+  profile?: any; // URL or null
+  isVerified?: boolean;
+  is2faOn?: boolean;
+  twoFA?: boolean; // API response uses this field
 }
 
 // Otp
@@ -25,6 +26,7 @@ export interface Notebook {
   ownerId: string;
   isDefault: boolean;
   createdAt: string; // date only string
+  updatedAt?: string;
 }
 
 // Note
@@ -32,15 +34,17 @@ export interface Note {
   id: string;
   title: string;
   content: string;
-  noteBookId: string;
+  notebookId: string;
+  date: string;
   createdAt: string; // date only string
+  updatedAt?: string;
 }
 
 // SharedNote
 export type AccessType = "viewer" | "editor";
 export interface SharedNote {
   recipientId: string;
-  noteBookId: string;
+  notebookId: string;
   accessType: AccessType;
   allowedNotes: string[]; // array of note ids
 }

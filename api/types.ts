@@ -1,6 +1,5 @@
 // API types for pallenote
 
-import type { User } from "./backendTypes"
 
 export interface ApiResponse<T> {
   data: T;
@@ -9,9 +8,11 @@ export interface ApiResponse<T> {
 }
 
 export interface AuthResponse {
-  user: User;
-  token: string;
-  refreshToken: string;
+  authToken: string;
+  email: string;
+  username: string;
+  profile: any;
+  twoFA: boolean;
 }
 
 export interface User {

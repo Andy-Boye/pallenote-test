@@ -1,22 +1,27 @@
 "use client"
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  type ReactNode,
-} from "react"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import {
-  signIn as apiSignIn,
-  signUp as apiSignUp,
-  signOut as apiSignOut,
-  verifyOtp as apiVerifyOtp,
-  resendOtp as apiResendOtp,
-  changePassword as apiChangePassword,
-  forgotPassword as apiForgotPassword,
-  resetPassword as apiResetPassword,
+    createContext,
+    useContext,
+    useEffect,
+    useState,
+    type ReactNode,
+} from "react"
+import {
+    changePassword as apiChangePassword,
+    deleteAccount as apiDeleteAccount,
+    forgotPassword as apiForgotPassword,
+    getAccountInfo as apiGetAccountInfo,
+    getAccountProfile as apiGetAccountProfile,
+    resendOtp as apiResendOtp,
+    resetPassword as apiResetPassword,
+    signIn as apiSignIn,
+    signOut as apiSignOut,
+    signUp as apiSignUp,
+    updateAccountProfile as apiUpdateAccountProfile,
+    updateAccountSettings as apiUpdateAccountSettings,
+    verifyOtp as apiVerifyOtp,
 } from "../api/authApi"
 import type { User } from "../api/backendTypes"
 
@@ -31,6 +36,11 @@ interface AuthContextType {
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>
   forgotPassword: (email: string) => Promise<void>
   resetPassword: (email: string, newPassword: string, otpCode: string) => Promise<void>
+  getAccountInfo: () => Promise<any>
+  getAccountProfile: () => Promise<{ email: string; username: string; profile?: string }>
+  updateAccountProfile: (profile: { email?: string; username?: string; profile?: string }) => Promise<{ email: string; username: string; profile?: string }>
+  updateAccountSettings: (settings: any) => Promise<any>
+  deleteAccount: () => Promise<void>
   isAuthenticated: boolean
   logout: () => Promise<void>
 }
@@ -62,16 +72,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true)
+      console.log('AuthContext: Starting sign in process')
       const authResponse = await apiSignIn(email, password)
+      console.log('AuthContext: Received auth response:', authResponse)
       
       // Handle the actual response structure from backend
-      if (authResponse.user) {
-        setUser(authResponse.user as User)
-        await AsyncStorage.setItem("user", JSON.stringify(authResponse.user))
-        await AsyncStorage.setItem("authToken", authResponse.token)
+      if (authResponse.authToken) {
+        // Create user object from the response data
+        const userData = {
+          email: authResponse.email,
+          username: authResponse.username,
+          profile: authResponse.profile,
+          twoFA: authResponse.twoFA
+        } as User
+        
+        console.log('AuthContext: Setting user data:', userData)
+        setUser(userData)
+        await AsyncStorage.setItem("user", JSON.stringify(userData))
+        await AsyncStorage.setItem("authToken", authResponse.authToken)
+        console.log('AuthContext: User data saved to storage')
       } else {
-        // Handle case where login was successful but no user object returned
-        console.log("Login successful but no user object in response")
+        // Handle case where login was successful but no auth token returned
+        console.log("Login successful but no auth token in response")
       }
     } catch (error) {
       console.error("Sign in error:", error)
@@ -85,9 +107,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true)
       const authResponse = await apiSignUp(name, email, username, password)
-      setUser(authResponse.user as User)
-      await AsyncStorage.setItem("user", JSON.stringify(authResponse.user))
-      await AsyncStorage.setItem("authToken", authResponse.token)
+      
+      // Create user object from the response data
+      const userData = {
+        email: authResponse.email,
+        username: authResponse.username,
+        profile: authResponse.profile,
+        twoFA: authResponse.twoFA
+      } as User
+      
+      setUser(userData)
+      await AsyncStorage.setItem("user", JSON.stringify(userData))
+      await AsyncStorage.setItem("authToken", authResponse.authToken)
     } catch (error) {
       console.error("Sign up error:", error)
       throw error
@@ -181,6 +212,80 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
+  // Get Account Info
+  const getAccountInfo = async () => {
+    try {
+      setLoading(true)
+      return await apiGetAccountInfo()
+    } catch (error) {
+      console.error("Get account info error:", error)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Get Account Profile
+  const getAccountProfile = async () => {
+    try {
+      setLoading(true)
+      return await apiGetAccountProfile()
+    } catch (error) {
+      console.error("Get account profile error:", error)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Update Account Profile
+  const updateAccountProfile = async (profile: { email?: string; username?: string; profile?: string }) => {
+    try {
+      setLoading(true)
+      const updatedProfile = await apiUpdateAccountProfile(profile)
+      // Update local user state if needed
+      if (user) {
+        setUser({ ...user, ...updatedProfile })
+        await AsyncStorage.setItem("user", JSON.stringify({ ...user, ...updatedProfile }))
+      }
+      return updatedProfile
+    } catch (error) {
+      console.error("Update account profile error:", error)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Update Account Settings
+  const updateAccountSettings = async (settings: any) => {
+    try {
+      setLoading(true)
+      return await apiUpdateAccountSettings(settings)
+    } catch (error) {
+      console.error("Update account settings error:", error)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Delete Account
+  const deleteAccount = async () => {
+    try {
+      setLoading(true)
+      await apiDeleteAccount()
+      // Clear local data after successful account deletion
+      setUser(null)
+      await AsyncStorage.multiRemove(["user", "authToken", "refreshToken"])
+    } catch (error) {
+      console.error("Delete account error:", error)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const value: AuthContextType = {
     user,
     loading,
@@ -192,6 +297,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     changePassword,
     forgotPassword,
     resetPassword,
+    getAccountInfo,
+    getAccountProfile,
+    updateAccountProfile,
+    updateAccountSettings,
+    deleteAccount,
     isAuthenticated: !!user,
     logout,
   }
