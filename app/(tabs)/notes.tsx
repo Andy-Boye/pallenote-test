@@ -12,7 +12,7 @@ import SearchBar from "@/components/SearchBar";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Alert, StyleSheet, View } from "react-native";
 
 const NotesScreen = () => {
   const router = useRouter();
@@ -60,19 +60,21 @@ const NotesScreen = () => {
   const openNote = (noteId: string) => {
     const note = notes.find(n => n.id === noteId);
     if (note) {
-      // Map the note to include notebookTitle for the editor
-      const noteForEditor = {
-        ...note,
-        notebookId: note.notebookId || 'default',
-        notebookTitle: note.notebookId === 'default' ? 'My Notebook' : 'My Notebook', // For now, all notes show as "My Notebook"
-      };
-      setEditingNote(noteForEditor);
+      // Set the editing note data and open the editor modal
+      setEditingNote({
+        id: note.id,
+        title: note.title,
+        content: note.content,
+        notebookId: note.notebookId,
+        notebookTitle: 'My Notebook', // Default value since Note type doesn't have notebookTitle
+        date: note.date,
+      });
       setEditorVisible(true);
     }
   };
 
   const openNoteEditor = () => {
-    setEditingNote(null); // Clear any editing note
+    setEditingNote(null); // Clear any editing note for new note creation
     setEditorVisible(true);
   };
   
@@ -136,6 +138,44 @@ const NotesScreen = () => {
     }
   };
 
+  const handleNotebookChange = async (noteId: string, newNotebookId: string, newNotebookTitle: string) => {
+    console.log('=== NOTEBOOK CHANGE HANDLER IN NOTES SCREEN ===');
+    console.log('Note ID:', noteId);
+    console.log('New Notebook ID:', newNotebookId);
+    console.log('New Notebook Title:', newNotebookTitle);
+    
+    try {
+      // Update the note's notebookId in the API
+      await updateNote(noteId, { notebookId: newNotebookId });
+      
+      // Update the note in local state immediately
+      setNotes(prevNotes => 
+        prevNotes.map(note => 
+          note.id === noteId 
+            ? { ...note, notebookId: newNotebookId }
+            : note
+        )
+      );
+      
+      console.log('Note notebook updated successfully in notes screen');
+      
+      // Show success message
+      Alert.alert(
+        "Notebook Updated", 
+        `Note moved to "${newNotebookTitle}" successfully!`,
+        [{ text: "OK" }]
+      );
+      
+    } catch (error) {
+      console.error('Error updating note notebook:', error);
+      Alert.alert(
+        "Error", 
+        "Failed to update note notebook. Please try again.",
+        [{ text: "OK" }]
+      );
+    }
+  };
+
   if (loading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
@@ -169,6 +209,7 @@ const NotesScreen = () => {
         visible={editorVisible}
         onClose={closeNoteEditor}
         onSave={handleSaveNote}
+        onNotebookChange={handleNotebookChange}
         saving={saving}
         editingNote={editingNote}
       />

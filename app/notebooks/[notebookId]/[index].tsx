@@ -91,8 +91,16 @@ export default function NotebookDetailScreen() {
   const openNote = (noteId: string) => {
     const note = notes.find(n => n.id === noteId);
     if (note) {
-      // Navigate to the note detail screen instead of opening the editor modal
-      router.push(`/notes/${noteId}`);
+      // Set the editing note data and open the editor modal
+      setEditingNote({
+        id: note.id,
+        title: note.title,
+        content: note.content,
+        notebookId: note.notebookId,
+        notebookTitle: 'My Notebook', // Default value since Note type doesn't have notebookTitle
+        date: note.date,
+      });
+      setEditorVisible(true);
     }
   };
 

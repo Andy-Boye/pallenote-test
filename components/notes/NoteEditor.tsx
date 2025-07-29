@@ -5,17 +5,18 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Keyboard,
-  Modal,
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View
+    ActivityIndicator,
+    Alert,
+    Keyboard,
+    Modal,
+    Pressable,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { RichToolbar, actions } from 'react-native-pell-rich-editor';
 
@@ -33,6 +34,7 @@ interface NoteEditorProps {
     date: string;
   }) => void;
   onDelete?: (noteId: string) => void;
+  onNotebookChange?: (noteId: string, newNotebookId: string, newNotebookTitle: string) => void;
   saving: boolean;
   editingNote?: {
     id: string;
@@ -49,6 +51,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
   onClose, 
   onSave, 
   onDelete,
+  onNotebookChange,
   saving,
   editingNote = null
 }) => {
@@ -109,15 +112,19 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     }
   };
 
-  // Fetch notebooks and handle form initialization
+  // Load notebooks when editor becomes visible
   useEffect(() => {
     const fetchNotebooks = async () => {
       try {
         const data = await getNotebooks();
         console.log('NoteEditor - Loaded notebooks:', data); // Debug log
+        
+        // Filter out any existing "default" notebook from API data to avoid duplicates
+        const filteredData = data.filter(nb => nb.id !== 'default');
+        
         // Add "My Notebook" as the default option for unassigned notes
         const defaultNotebook = { id: 'default', title: 'My Notebook' };
-        const allNotebooks = [defaultNotebook, ...(data as Notebook[])];
+        const allNotebooks = [defaultNotebook, ...filteredData];
         console.log('NoteEditor - All notebooks including default:', allNotebooks); // Debug log
         setNotebooks(allNotebooks);
         
@@ -130,7 +137,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
           
           // Set selected notebook based on editing note
           if (editingNote.notebookId !== 'default') {
-            const existingNotebook = data.find(nb => nb.id === editingNote.notebookId);
+            const existingNotebook = allNotebooks.find(nb => nb.id === editingNote.notebookId);
             console.log('NoteEditor - Found existing notebook:', existingNotebook); // Debug log
             if (existingNotebook) {
               setSelectedNotebook(existingNotebook);
@@ -428,16 +435,47 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         </Modal>
 
         {/* Notebook Selector */}
-        <Pressable
-          onPress={() => setNotebookDropdownVisible(true)}
-          style={[styles.notebookSelector, { borderBottomColor: colors.border }]}
-        >
-          <Ionicons name="book-outline" size={18} color={colors.textSecondary} style={{ marginRight: 8 }} />
-          <Text style={{ color: colors.textSecondary, fontSize: 15, marginRight: 6 }}>
-            {selectedNotebook ? selectedNotebook.title : 'My Notebook'}
-          </Text>
-          <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
-        </Pressable>
+        <View style={styles.notebookSelectorContainer}>
+          <Pressable
+            onPress={() => setNotebookDropdownVisible(true)}
+            style={[styles.notebookSelector, { borderBottomColor: colors.border }]}
+          >
+            <Ionicons 
+              name="book-outline" 
+              size={18} 
+              color={selectedNotebook ? colors.primary : colors.textSecondary} 
+              style={{ marginRight: 8 }} 
+            />
+            <Text style={{ 
+              color: selectedNotebook ? colors.primary : colors.textSecondary, 
+              fontSize: 15, 
+              marginRight: 6,
+              fontWeight: selectedNotebook ? '600' : '400'
+            }}>
+              {selectedNotebook ? selectedNotebook.title : 'My Notebook'}
+            </Text>
+            <Ionicons name="chevron-down" size={18} color={selectedNotebook ? colors.primary : colors.textSecondary} />
+          </Pressable>
+          <TouchableOpacity
+            onPress={() => {
+              const fetchNotebooks = async () => {
+                try {
+                  const data = await getNotebooks();
+                  const filteredData = data.filter(nb => nb.id !== 'default');
+                  const defaultNotebook = { id: 'default', title: 'My Notebook' };
+                  const allNotebooks = [defaultNotebook, ...filteredData];
+                  setNotebooks(allNotebooks);
+                } catch (error) {
+                  console.error('Error refreshing notebooks:', error);
+                }
+              };
+              fetchNotebooks();
+            }}
+            style={[styles.refreshButton, { backgroundColor: colors.primary }]}
+          >
+            <Ionicons name="refresh" size={16} color="#fff" />
+          </TouchableOpacity>
+        </View>
 
         {/* Notebook Dropdown Modal */}
         <Modal
@@ -451,18 +489,72 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
             onPress={() => setNotebookDropdownVisible(false)}
           >
             <View style={[styles.dropdown, { backgroundColor: colors.surface }]}>
+              {/* Refresh option at the top */}
+              <Pressable
+                onPress={() => {
+                  const fetchNotebooks = async () => {
+                    try {
+                      const data = await getNotebooks();
+                      const filteredData = data.filter(nb => nb.id !== 'default');
+                      const defaultNotebook = { id: 'default', title: 'My Notebook' };
+                      const allNotebooks = [defaultNotebook, ...filteredData];
+                      setNotebooks(allNotebooks);
+                    } catch (error) {
+                      console.error('Error refreshing notebooks:', error);
+                    }
+                  };
+                  fetchNotebooks();
+                  setNotebookDropdownVisible(false);
+                }}
+                style={[styles.dropdownItem, styles.refreshItem]}
+              >
+                <Ionicons name="refresh" size={18} color={colors.primary} style={{ marginRight: 8 }} />
+                <Text style={{ color: colors.primary, fontSize: 15, fontWeight: '600' }}>Refresh Notebooks</Text>
+              </Pressable>
+              
+              {/* Divider */}
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
+              
+              {/* Notebook options */}
               {notebooks.map(nb => (
                 <Pressable
                   key={nb.id}
                   onPress={() => { 
                     console.log('NoteEditor - Selected notebook:', nb); // Debug log
                     setSelectedNotebook(nb); 
-                    setNotebookDropdownVisible(false); 
+                    setNotebookDropdownVisible(false);
+                    
+                    // Instant reflection - call callback immediately
+                    if (onNotebookChange && editingNote) {
+                      console.log('NoteEditor - Calling onNotebookChange with:', {
+                        noteId: editingNote.id,
+                        newNotebookId: nb.id,
+                        newNotebookTitle: nb.title
+                      });
+                      onNotebookChange(editingNote.id, nb.id, nb.title);
+                    }
                   }}
-                  style={styles.dropdownItem}
+                  style={[
+                    styles.dropdownItem,
+                    selectedNotebook?.id === nb.id && { backgroundColor: colors.primary + '20' }
+                  ]}
                 >
-                  <Ionicons name="book-outline" size={18} color={colors.primary} style={{ marginRight: 8 }} />
-                  <Text style={{ color: colors.text, fontSize: 15 }}>{nb.title}</Text>
+                  <Ionicons 
+                    name={selectedNotebook?.id === nb.id ? "book" : "book-outline"} 
+                    size={18} 
+                    color={selectedNotebook?.id === nb.id ? colors.primary : colors.text} 
+                    style={{ marginRight: 8 }} 
+                  />
+                  <Text style={{ 
+                    color: selectedNotebook?.id === nb.id ? colors.primary : colors.text, 
+                    fontSize: 15,
+                    fontWeight: selectedNotebook?.id === nb.id ? '600' : '400'
+                  }}>
+                    {nb.title}
+                  </Text>
+                  {selectedNotebook?.id === nb.id && (
+                    <Ionicons name="checkmark" size={18} color={colors.primary} style={{ marginLeft: 'auto' }} />
+                  )}
                 </Pressable>
               ))}
             </View>
@@ -575,6 +667,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
+  },
+  refreshItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  divider: {
+    height: 1,
+    marginVertical: 8,
+  },
+  notebookSelectorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+  },
+  refreshButton: {
+    padding: 6,
+    borderRadius: 8,
   },
   titleInput: {
     fontSize: 28,

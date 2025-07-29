@@ -1,6 +1,5 @@
-import { getNotes } from "@/api/notesApi";
-import { getTasks } from "@/api/tasksApi";
-import type { Note, Recording, Task } from "@/api/types";
+import { createRegisters1Note, getNotes } from "@/api/notesApi";
+import type { Note } from "@/api/types";
 import FloatingActionButton from '@/components/FloatingActionButton';
 import RichNoteCard from '@/components/notes/RichNoteCard';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,8 +20,8 @@ const HomeScreen = () => {
   const drawerWidth = Dimensions.get('window').width * 0.5
   const router = useRouter()
   const [notes, setNotes] = useState<Note[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [recordings, setRecordings] = useState<Recording[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]); // Changed to any[] as Task type is removed
+  const [recordings, setRecordings] = useState<any[]>([]); // Changed to any[] as Recording type is removed
   const [loading, setLoading] = useState(true);
   const waveAnimation = useRef(new Animated.Value(0)).current;
 
@@ -34,8 +33,8 @@ const HomeScreen = () => {
         setNotes(notesData);
         
         // Fetch tasks
-        const tasksData = await getTasks();
-        setTasks(tasksData);
+        // const tasksData = await getTasks(); // getTasks is removed
+        // setTasks(tasksData);
         
         // Mock recordings data (since no API exists yet)
         setRecordings([
@@ -101,56 +100,56 @@ const HomeScreen = () => {
             notebookId: 'default'
           }
         ]);
-        setTasks([
-          {
-            id: '1',
-            title: 'Complete project proposal',
-            completed: false,
-            dueDate: '2024-01-20'
-          },
-          {
-            id: '2',
-            title: 'Review meeting notes',
-            completed: true,
-            dueDate: '2024-01-18'
-          },
-          {
-            id: '3',
-            title: 'Update documentation',
-            completed: false,
-            dueDate: '2024-01-25'
-          },
-          {
-            id: '4',
-            title: 'Schedule team meeting',
-            completed: false,
-            dueDate: '2024-01-22'
-          },
-          {
-            id: '5',
-            title: 'Prepare presentation',
-            completed: true,
-            dueDate: '2024-01-16'
-          },
-          {
-            id: '6',
-            title: 'Send follow-up emails',
-            completed: false,
-            dueDate: '2024-01-19'
-          },
-          {
-            id: '7',
-            title: 'Update project timeline',
-            completed: false,
-            dueDate: '2024-01-23'
-          },
-          {
-            id: '8',
-            title: 'Review code changes',
-            completed: true,
-            dueDate: '2024-01-17'
-          }
-        ]);
+        // setTasks([ // setTasks is removed
+        //   {
+        //     id: '1',
+        //     title: 'Complete project proposal',
+        //     completed: false,
+        //     dueDate: '2024-01-20'
+        //   },
+        //   {
+        //     id: '2',
+        //     title: 'Review meeting notes',
+        //     completed: true,
+        //     dueDate: '2024-01-18'
+        //   },
+        //   {
+        //     id: '3',
+        //     title: 'Update documentation',
+        //     completed: false,
+        //     dueDate: '2024-01-25'
+        //   },
+        //   {
+        //     id: '4',
+        //     title: 'Schedule team meeting',
+        //     completed: false,
+        //     dueDate: '2024-01-22'
+        //   },
+        //   {
+        //     id: '5',
+        //     title: 'Prepare presentation',
+        //     completed: true,
+        //     dueDate: '2024-01-16'
+        //   },
+        //   {
+        //     id: '6',
+        //     title: 'Send follow-up emails',
+        //     completed: false,
+        //     dueDate: '2024-01-19'
+        //   },
+        //   {
+        //     id: '7',
+        //     title: 'Update project timeline',
+        //     completed: false,
+        //     dueDate: '2024-01-23'
+        //   },
+        //   {
+        //     id: '8',
+        //     title: 'Review code changes',
+        //     completed: true,
+        //     dueDate: '2024-01-17'
+        //   }
+        // ]);
         setRecordings([
           {
             id: '1',
@@ -316,8 +315,23 @@ const HomeScreen = () => {
 
   // Stats are now display-only (no navigation)
   const handleStatPress = () => {
-    // Do nothing - stats are now display-only
-  }
+    Alert.alert("Stats", "Detailed statistics coming soon!");
+  };
+
+  const handleCreateRegistersNote = async () => {
+    try {
+      console.log('Creating Registers1 note...');
+      const newNote = await createRegisters1Note();
+      console.log('Registers1 note created:', newNote);
+      Alert.alert("Success", "Registers1 note created successfully!");
+      // Refresh notes by calling fetchData again
+      const notesData = await getNotes();
+      setNotes(notesData);
+    } catch (error) {
+      console.error('Error creating Registers1 note:', error);
+      Alert.alert("Error", "Failed to create Registers1 note");
+    }
+  };
 
   return (
     <DarkGradientBackground>
@@ -422,6 +436,14 @@ const HomeScreen = () => {
             </TouchableOpacity>
           ))}
         </View>
+
+        {/* Test Button for Registers1 Note */}
+        <TouchableOpacity
+          style={[styles.testButton, { backgroundColor: colors.primary }]}
+          onPress={handleCreateRegistersNote}
+        >
+          <Text style={styles.testButtonText}>Create Registers1 Note</Text>
+        </TouchableOpacity>
 
         {/* Enhanced Recent Items */}
         {loading ? (
@@ -1030,6 +1052,25 @@ const styles = StyleSheet.create({
   logoutButtonText: {
     color: 'white',
     fontSize: 16,
+  },
+  testButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  testButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 })
 

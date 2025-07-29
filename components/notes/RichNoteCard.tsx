@@ -1,19 +1,13 @@
 import { useTheme } from '@/contexts/ThemeContext';
-import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Pressable,
-  Modal,
-  SafeAreaView,
-  TextInput,
-  ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
-import RichTextEditor from '@/components/RichTextEditor';
-import EditorToolbar from './EditorToolbar';
+import NoteEditor from './NoteEditor';
 
 interface RichNoteCardProps {
   note: {
@@ -38,36 +32,70 @@ const RichNoteCard: React.FC<RichNoteCardProps> = ({
 }) => {
   const { colors } = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedTitle, setEditedTitle] = useState(note.title);
-  const [editedContent, setEditedContent] = useState(note.content);
-  const [formatState, setFormatState] = useState({
-    bold: false,
-    italic: false,
-    underline: false,
-    strikethrough: false,
-    alignment: 'left' as 'left' | 'center' | 'right',
-  });
+  const [editorVisible, setEditorVisible] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editingNote, setEditingNote] = useState<{
+    id: string;
+    title: string;
+    content: string;
+    notebookId: string;
+    notebookTitle: string;
+    date: string;
+  } | null>(null);
 
   const handleEdit = () => {
-    setIsEditing(true);
+    // Set the editing note data and open the editor modal
+    setEditingNote({
+      id: note.id,
+      title: note.title,
+      content: note.content,
+      notebookId: note.notebookId,
+      notebookTitle: 'My Notebook', // Default value since Note type doesn't have notebookTitle
+      date: note.date,
+    });
+    setEditorVisible(true);
   };
 
-  const handleSave = () => {
+  const closeNoteEditor = () => {
+    setEditorVisible(false);
+    setEditingNote(null);
+  };
+
+  const handleSaveNote = async (noteData: {
+    id: string;
+    title: string;
+    content: string;
+    notebookId: string;
+    notebookTitle: string;
+    date: string;
+  }) => {
+    setSaving(true);
+    try {
+      if (onEdit) {
+        onEdit({
+          ...note,
+          title: noteData.title,
+          content: noteData.content,
+          notebookId: noteData.notebookId,
+        });
+      }
+      closeNoteEditor();
+    } catch (error) {
+      console.error('Error saving note:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleNotebookChange = async (noteId: string, newNotebookId: string, newNotebookTitle: string) => {
+    // This would typically update the note's notebook in the API
+    // For now, we'll just call the onEdit callback
     if (onEdit) {
       onEdit({
         ...note,
-        title: editedTitle,
-        content: editedContent,
+        notebookId: newNotebookId,
       });
     }
-    setIsEditing(false);
-  };
-
-  const handleCancel = () => {
-    setEditedTitle(note.title);
-    setEditedContent(note.content);
-    setIsEditing(false);
   };
 
   const handleDelete = () => {
@@ -82,188 +110,94 @@ const RichNoteCard: React.FC<RichNoteCardProps> = ({
     }
   };
 
-  // Formatting functions
-  const toggleBold = () => {
-    setFormatState(prev => ({ ...prev, bold: !prev.bold }));
-  };
-
-  const toggleItalic = () => {
-    setFormatState(prev => ({ ...prev, italic: !prev.italic }));
-  };
-
-  const toggleUnderline = () => {
-    setFormatState(prev => ({ ...prev, underline: !prev.underline }));
-  };
-
-  const toggleStrikethrough = () => {
-    setFormatState(prev => ({ ...prev, strikethrough: !prev.strikethrough }));
-  };
-
-  const setAlignmentLeft = () => {
-    setFormatState(prev => ({ ...prev, alignment: 'left' }));
-  };
-
-  const setAlignmentCenter = () => {
-    setFormatState(prev => ({ ...prev, alignment: 'center' }));
-  };
-
-  const setAlignmentRight = () => {
-    setFormatState(prev => ({ ...prev, alignment: 'right' }));
-  };
-
-  if (isEditing) {
-    return (
-      <Modal
-        visible={isEditing}
-        animationType="slide"
-        transparent={false}
-        onRequestClose={handleCancel}
+  return (
+    <>
+      <TouchableOpacity
+        style={[styles.card, { backgroundColor: colors.surface }]}
+        onPress={() => setIsExpanded(!isExpanded)}
+        activeOpacity={0.8}
       >
-        <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-          {/* Top Bar */}
-          <View style={[styles.topBar, { borderBottomColor: colors.border }]}>
-            <TouchableOpacity onPress={handleCancel} hitSlop={10} style={styles.topBarButton}>
-              <Ionicons name="arrow-back" size={26} color={colors.text} />
+        {/* Header */}
+        <View style={styles.cardHeader}>
+          <View style={styles.titleContainer}>
+            <Text style={[styles.title, { color: colors.text }]} className="font-[InterMedium]">
+              {note.title}
+            </Text>
+            <Text style={[styles.date, { color: colors.textSecondary }]} className="font-[Inter]">
+              {note.date}
+            </Text>
+          </View>
+          <View style={styles.headerActions}>
+            <TouchableOpacity onPress={handleEdit} style={styles.actionButton}>
+              <Ionicons name="create-outline" size={18} color={colors.primary} />
             </TouchableOpacity>
+            <TouchableOpacity onPress={handleShare} style={styles.actionButton}>
+              <Ionicons name="share-outline" size={18} color={colors.textSecondary} />
+            </TouchableOpacity>
+            <Ionicons 
+              name={isExpanded ? "chevron-up" : "chevron-down"} 
+              size={20} 
+              color={colors.textSecondary} 
+            />
+          </View>
+        </View>
+
+        {/* Content Preview */}
+        {!isExpanded && (
+          <View style={styles.previewContainer}>
+            <Text style={[styles.preview, { color: colors.textSecondary }]} className="font-[Inter]">
+              {note.content.length > 100 ? note.content.slice(0, 100) + '...' : note.content}
+            </Text>
+          </View>
+        )}
+
+        {/* Expanded Content */}
+        {isExpanded && (
+          <View style={styles.expandedContent}>
+            <View style={styles.contentContainer}>
+              <Text style={[styles.fullContent, { color: colors.text }]} className="font-[Inter]">
+                {note.content}
+              </Text>
+            </View>
             
-            <View style={styles.topBarActions}>
-              <TouchableOpacity hitSlop={10} style={styles.topBarButton}>
-                <MaterialCommunityIcons name="undo-variant" size={24} color={colors.textSecondary} />
+            {/* Action Buttons */}
+            <View style={styles.expandedActions}>
+              <TouchableOpacity 
+                style={[styles.actionButton, { backgroundColor: colors.primary }]}
+                onPress={handleEdit}
+              >
+                <Ionicons name="create" size={16} color="white" />
+                <Text style={styles.actionButtonText}>Edit</Text>
               </TouchableOpacity>
-              <TouchableOpacity hitSlop={10} style={styles.topBarButton}>
-                <MaterialCommunityIcons name="redo-variant" size={24} color={colors.textSecondary} />
+              <TouchableOpacity 
+                style={[styles.actionButton, { backgroundColor: colors.success }]}
+                onPress={handleShare}
+              >
+                <Ionicons name="share" size={16} color="white" />
+                <Text style={styles.actionButtonText}>Share</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleShare} hitSlop={10} style={styles.topBarButton}>
-                <Feather name="share" size={22} color={colors.textSecondary} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleSave} hitSlop={10} style={styles.topBarButton}>
-                <Ionicons name="checkmark" size={24} color={colors.primary} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleDelete} hitSlop={10} style={styles.topBarButton}>
-                <Ionicons name="trash-outline" size={22} color={colors.error} />
+              <TouchableOpacity 
+                style={[styles.actionButton, { backgroundColor: colors.error }]}
+                onPress={handleDelete}
+              >
+                <Ionicons name="trash" size={16} color="white" />
+                <Text style={styles.actionButtonText}>Delete</Text>
               </TouchableOpacity>
             </View>
           </View>
+        )}
+      </TouchableOpacity>
 
-          {/* Title Input */}
-          <TextInput
-            style={[styles.titleInput, { color: colors.text }]}
-            placeholder="Title"
-            placeholderTextColor={colors.textSecondary}
-            maxLength={80}
-            value={editedTitle}
-            onChangeText={setEditedTitle}
-          />
-
-          {/* Content Input */}
-          <View style={styles.contentContainer}>
-            <RichTextEditor
-              value={editedContent}
-              onValueChange={setEditedContent}
-              minHeight={120}
-              placeholder="Start writing..."
-              placeholderTextColor={colors.textSecondary}
-              style={{ color: colors.text }}
-            />
-          </View>
-
-          {/* Editor Toolbar */}
-          <View style={styles.toolbarContainer}>
-            <EditorToolbar
-              formatState={formatState}
-              onToggleBold={toggleBold}
-              onToggleItalic={toggleItalic}
-              onToggleUnderline={toggleUnderline}
-              onToggleStrikethrough={toggleStrikethrough}
-              onSetAlignmentLeft={setAlignmentLeft}
-              onSetAlignmentCenter={setAlignmentCenter}
-              onSetAlignmentRight={setAlignmentRight}
-              onShowInsertPanel={() => {}}
-              onShowFormatPanel={() => {}}
-              editorFocused={true}
-            />
-          </View>
-        </SafeAreaView>
-      </Modal>
-    );
-  }
-
-  return (
-    <TouchableOpacity
-      style={[styles.card, { backgroundColor: colors.surface }]}
-      onPress={() => setIsExpanded(!isExpanded)}
-      activeOpacity={0.8}
-    >
-      {/* Header */}
-      <View style={styles.cardHeader}>
-        <View style={styles.titleContainer}>
-          <Text style={[styles.title, { color: colors.text }]} className="font-[InterMedium]">
-            {note.title}
-          </Text>
-          <Text style={[styles.date, { color: colors.textSecondary }]} className="font-[Inter]">
-            {note.date}
-          </Text>
-        </View>
-        <View style={styles.headerActions}>
-          <TouchableOpacity onPress={handleEdit} style={styles.actionButton}>
-            <Ionicons name="create-outline" size={18} color={colors.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleShare} style={styles.actionButton}>
-            <Ionicons name="share-outline" size={18} color={colors.textSecondary} />
-          </TouchableOpacity>
-          <Ionicons 
-            name={isExpanded ? "chevron-up" : "chevron-down"} 
-            size={20} 
-            color={colors.textSecondary} 
-          />
-        </View>
-      </View>
-
-      {/* Content Preview */}
-      {!isExpanded && (
-        <View style={styles.previewContainer}>
-          <Text style={[styles.preview, { color: colors.textSecondary }]} className="font-[Inter]">
-            {note.content.length > 100 ? note.content.slice(0, 100) + '...' : note.content}
-          </Text>
-        </View>
-      )}
-
-      {/* Expanded Content */}
-      {isExpanded && (
-        <View style={styles.expandedContent}>
-          <ScrollView style={styles.contentScroll} showsVerticalScrollIndicator={false}>
-            <Text style={[styles.fullContent, { color: colors.text }]} className="font-[Inter]">
-              {note.content}
-            </Text>
-          </ScrollView>
-          
-          {/* Action Buttons */}
-          <View style={styles.expandedActions}>
-            <TouchableOpacity 
-              style={[styles.actionButton, { backgroundColor: colors.primary }]}
-              onPress={handleEdit}
-            >
-              <Ionicons name="create" size={16} color="white" />
-              <Text style={styles.actionButtonText}>Edit</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.actionButton, { backgroundColor: colors.success }]}
-              onPress={handleShare}
-            >
-              <Ionicons name="share" size={16} color="white" />
-              <Text style={styles.actionButtonText}>Share</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.actionButton, { backgroundColor: colors.error }]}
-              onPress={handleDelete}
-            >
-              <Ionicons name="trash" size={16} color="white" />
-              <Text style={styles.actionButtonText}>Delete</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-    </TouchableOpacity>
+      {/* Note Editor Modal */}
+      <NoteEditor
+        visible={editorVisible}
+        onClose={closeNoteEditor}
+        onSave={handleSaveNote}
+        onNotebookChange={handleNotebookChange}
+        saving={saving}
+        editingNote={editingNote}
+      />
+    </>
   );
 };
 
@@ -314,7 +248,7 @@ const styles = StyleSheet.create({
   expandedContent: {
     marginTop: 12,
   },
-  contentScroll: {
+  contentContainer: {
     maxHeight: 200,
   },
   fullContent: {
@@ -334,49 +268,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     marginLeft: 4,
-  },
-  // Modal styles
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-  },
-  topBarActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  topBarButton: {
-    padding: 6,
-  },
-  titleInput: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginTop: 18,
-    marginHorizontal: 20,
-    marginBottom: 4,
-    paddingVertical: 0,
-    borderBottomWidth: 0,
-  },
-  contentContainer: {
-    marginHorizontal: 20,
-    marginBottom: 8,
-    minHeight: 120,
-    flex: 1,
-  },
-  toolbarContainer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'transparent',
-    paddingHorizontal: 20,
-    paddingBottom: 10,
-    zIndex: 10,
   },
 });
 

@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
 import {
     ActivityIndicator,
+    FlatList,
     ScrollView,
     Text,
     TextInput,
@@ -116,28 +117,32 @@ export default function SearchScreen() {
       </ScrollView>
 
       {/* Results */}
-      <ScrollView className="mt-2">
-        {loading ? (
-          <ActivityIndicator size="small" color={colors.primary} className="mt-6" />
-        ) : results.length === 0 && query.trim() ? (
-          <Text className="text-center text-gray-500 mt-4">No results found</Text>
-        ) : (
-          results.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              onPress={() => handleResultPress(item)}
-              className="p-4 mb-2 rounded-xl bg-gray-100 dark:bg-gray-800"
-            >
-              <Text className="text-base font-medium text-black dark:text-white">
-                {item.title}
-              </Text>
-              <Text className="text-xs text-gray-500 mt-1 capitalize">
-                {item.type}
-              </Text>
-            </TouchableOpacity>
-          ))
+      <FlatList
+        data={results}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            onPress={() => handleResultPress(item)}
+            className="p-4 mb-2 rounded-xl bg-gray-100 dark:bg-gray-800"
+          >
+            <Text className="text-base font-medium text-black dark:text-white">
+              {item.title}
+            </Text>
+            <Text className="text-xs text-gray-500 mt-1 capitalize">
+              {item.type}
+            </Text>
+          </TouchableOpacity>
         )}
-      </ScrollView>
+        ListEmptyComponent={
+          loading ? (
+            <ActivityIndicator size="small" color={colors.primary} className="mt-6" />
+          ) : results.length === 0 && query.trim() ? (
+            <Text className="text-center text-gray-500 mt-4">No results found</Text>
+          ) : null
+        }
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}
+      />
     </View>
   );
 }
