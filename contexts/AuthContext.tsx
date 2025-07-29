@@ -24,6 +24,7 @@ import {
     verifyOtp as apiVerifyOtp,
 } from "../api/authApi"
 import type { User } from "../api/backendTypes"
+import { clearAuthToken, setAuthToken } from "../api/config"
 
 interface AuthContextType {
   user: User | null
@@ -57,10 +58,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const loadUser = async () => {
     try {
+      console.log('=== LOADING USER FROM STORAGE ===')
       const userData = await AsyncStorage.getItem("user")
       const token = await AsyncStorage.getItem("authToken")
+      
+      console.log('User data found:', !!userData)
+      console.log('Auth token found:', !!token)
+      
       if (userData && token) {
-        setUser(JSON.parse(userData))
+        const parsedUser = JSON.parse(userData)
+        console.log('Setting user from storage:', parsedUser.email)
+        setUser(parsedUser)
+      } else {
+        console.log('No user data or token found in storage')
       }
     } catch (error) {
       console.error("Error loading user:", error)
@@ -72,9 +82,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true)
-      console.log('AuthContext: Starting sign in process')
+      console.log('=== SIGN IN PROCESS STARTED ===')
+      console.log('Email:', email)
+      
       const authResponse = await apiSignIn(email, password)
-      console.log('AuthContext: Received auth response:', authResponse)
+      console.log('Auth response received:', !!authResponse.authToken)
       
       // Handle the actual response structure from backend
       if (authResponse.authToken) {
@@ -86,13 +98,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           twoFA: authResponse.twoFA
         } as User
         
-        console.log('AuthContext: Setting user data:', userData)
+        console.log('Setting user data:', userData.email)
         setUser(userData)
+        
+        // Save to storage using helper functions
         await AsyncStorage.setItem("user", JSON.stringify(userData))
-        await AsyncStorage.setItem("authToken", authResponse.authToken)
-        console.log('AuthContext: User data saved to storage')
+        await setAuthToken(authResponse.authToken)
+        
+        console.log('=== SIGN IN COMPLETED SUCCESSFULLY ===')
       } else {
-        // Handle case where login was successful but no auth token returned
         console.log("Login successful but no auth token in response")
       }
     } catch (error) {
@@ -106,19 +120,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signUp = async (name: string, email: string, username: string, password: string) => {
     try {
       setLoading(true)
+      console.log('=== SIGN UP PROCESS STARTED ===')
+      console.log('Email:', email)
+      console.log('Username:', username)
+      
       const authResponse = await apiSignUp(name, email, username, password)
       
-      // Create user object from the response data
-      const userData = {
-        email: authResponse.email,
-        username: authResponse.username,
-        profile: authResponse.profile,
-        twoFA: authResponse.twoFA
-      } as User
-      
-      setUser(userData)
-      await AsyncStorage.setItem("user", JSON.stringify(userData))
-      await AsyncStorage.setItem("authToken", authResponse.authToken)
+      // Check if signup was successful but account needs verification
+      if (authResponse && authResponse.authToken) {
+        // Create user object from the response data
+        const userData = {
+          email: authResponse.email,
+          username: authResponse.username,
+          profile: authResponse.profile,
+          twoFA: authResponse.twoFA
+        } as User
+        
+        console.log('Setting user data:', userData.email)
+        setUser(userData)
+        
+        // Save to storage using helper functions
+        await AsyncStorage.setItem("user", JSON.stringify(userData))
+        await setAuthToken(authResponse.authToken)
+        
+        console.log('=== SIGN UP COMPLETED SUCCESSFULLY ===')
+      } else {
+        // Account created but needs verification
+        console.log('Account created successfully, verification required')
+        // Don't set user or token since verification is needed
+        console.log('=== SIGN UP COMPLETED - VERIFICATION REQUIRED ===')
+      }
     } catch (error) {
       console.error("Sign up error:", error)
       throw error
@@ -129,21 +160,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     try {
+      console.log('=== SIGN OUT PROCESS STARTED ===')
       await apiSignOut()
     } catch (error) {
       console.error("Sign out error:", error)
     } finally {
+      console.log('Clearing user data and tokens')
       setUser(null)
-      await AsyncStorage.removeItem("user")
-      await AsyncStorage.removeItem("authToken")
+      await clearAuthToken()
+      console.log('=== SIGN OUT COMPLETED ===')
     }
   }
 
   const logout = async () => {
+    console.log('=== LOGOUT PROCESS STARTED ===')
     setUser(null)
-    await AsyncStorage.removeItem("user")
-    await AsyncStorage.removeItem("authToken")
+    await clearAuthToken()
     await AsyncStorage.removeItem("refreshToken")
+    console.log('=== LOGOUT COMPLETED ===')
   }
 
   // OTP Verification

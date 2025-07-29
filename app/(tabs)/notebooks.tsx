@@ -83,7 +83,7 @@ const NotebooksScreen = () => {
     const notebookId = notebook.id === 'default' ? 'default' : notebook.id;
     
     router.push({
-      pathname: "/notebooks/[notebookId]" as any,
+      pathname: "/notebooks/[notebookId]/[index]" as any,
       params: { notebookId: notebookId }
     })
   }
@@ -171,15 +171,12 @@ const NotebooksScreen = () => {
     }
   };
 
-  const totalNotebooks = notebooks.length;
-
   // Filter notebooks based on search query
-  const filteredNotebooks = [
-    { id: 'default', title: 'My Notebook', description: 'Unassigned notes' },
-    ...notebooks
-  ].filter(notebook => 
+  const filteredNotebooks = (notebooks || []).filter(notebook => 
     notebook.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const totalNotebooks = filteredNotebooks.length;
 
   if (loading) {
     return (

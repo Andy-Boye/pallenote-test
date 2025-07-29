@@ -1,23 +1,40 @@
-import { getNoteById } from "@/api/notesApi";
-import type { Note } from "@/api/types";
+import { getNotebooks } from "@/api/notebooksApi";
+import { getNoteById, updateNote } from "@/api/notesApi";
+import type { Note, Notebook } from "@/api/types";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View, TextInput } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Alert, Modal, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import DarkGradientBackground from '../../../components/DarkGradientBackground';
 import FAB from "../../../components/FAB";
+import RichTextEditor from "../../../components/RichTextEditor";
+import NoteEditor from "../../../components/notes/NoteEditor";
+
 
 const NoteDetailScreen = () => {
   const { colors } = useTheme();
   const router = useRouter();
-  const { noteId } = useLocalSearchParams<{ noteId: string }>();
+  const { noteId, fromNotebook } = useLocalSearchParams<{ noteId: string; fromNotebook?: string }>();
   const [note, setNote] = useState<Note | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState("");
   const [editedContent, setEditedContent] = useState("");
+  const [notebooks, setNotebooks] = useState<Notebook[]>([]);
+  const [selectedNotebook, setSelectedNotebook] = useState<Notebook | null>(null);
+  const [notebookDropdownVisible, setNotebookDropdownVisible] = useState(false);
+  const [formatState, setFormatState] = useState({
+    bold: false,
+    italic: false,
+    underline: false,
+    strikethrough: false,
+    alignment: 'left' as 'left' | 'center' | 'right',
+  });
+  const pellEditorRef = useRef<any>(null);
+  const [editorVisible, setEditorVisible] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!noteId) return;
@@ -35,6 +52,30 @@ const NoteDetailScreen = () => {
       });
   }, [noteId]);
 
+  // Load notebooks when component mounts
+  useEffect(() => {
+    const loadNotebooks = async () => {
+      try {
+        const data = await getNotebooks();
+        const defaultNotebook = { id: 'default', title: 'My Notebook' } as Notebook;
+        const allNotebooks = [defaultNotebook, ...data];
+        setNotebooks(allNotebooks);
+        
+        // Set selected notebook based on note's notebookId
+        if (note) {
+          const currentNotebook = allNotebooks.find(nb => nb.id === note.notebookId) || defaultNotebook;
+          setSelectedNotebook(currentNotebook);
+        }
+      } catch (error) {
+        console.error('Error loading notebooks:', error);
+      }
+    };
+    
+    if (note) {
+      loadNotebooks();
+    }
+  }, [note]);
+
   const handleDelete = () => {
     Alert.alert(
       "Delete Note",
@@ -49,7 +90,12 @@ const NoteDetailScreen = () => {
             setTimeout(() => {
               setDeleting(false);
               Alert.alert("Deleted", "Note deleted successfully.");
-              router.replace("/(tabs)/notes");
+              // Navigate to the notebook screen instead of notes tab
+              if (note?.notebookId) {
+                router.replace(`/notebooks/${note.notebookId}`);
+              } else {
+                router.replace("/(tabs)/notes");
+              }
             }, 800);
           },
         },
@@ -62,13 +108,93 @@ const NoteDetailScreen = () => {
       Alert.alert("Validation", "Please enter both a title and content for your note.");
       return;
     }
-    // TODO: Implement actual save functionality
-    Alert.alert("Success", "Note updated successfully!");
-    setIsEditing(false);
+    
+    try {
+      // Update the note via API
+      const updatedNote = await updateNote(noteId, {
+        title: editedTitle.trim(),
+        content: editedContent.trim(),
+      });
+      
+      // Update local state
+      setNote(updatedNote);
+      Alert.alert("Success", "Note updated successfully!");
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Error updating note:", error);
+      Alert.alert("Error", "Failed to update note. Please try again.");
+    }
   };
 
   const handleShare = () => {
     Alert.alert('Share', 'Share functionality coming soon!');
+  };
+
+  const handleBackNavigation = () => {
+    // Simply go back to the previous screen
+    router.back();
+  };
+
+  const handleEditNote = () => {
+    // Open the NoteEditor modal with the current note data
+    setEditorVisible(true);
+  };
+
+  const handleCloseEditor = () => {
+    setEditorVisible(false);
+  };
+
+  const handleSaveNote = async (noteData: {
+    id: string;
+    title: string;
+    content: string;
+    notebookId: string;
+    notebookTitle: string;
+    date: string;
+  }) => {
+    setSaving(true);
+    try {
+      // Update the note via API
+      const updatedNote = await updateNote(noteId, {
+        title: noteData.title,
+        content: noteData.content,
+        notebookId: noteData.notebookId,
+      });
+      
+      // Update local state
+      setNote(updatedNote);
+      Alert.alert("Success", "Note updated successfully!");
+      setEditorVisible(false);
+    } catch (error) {
+      console.error("Error updating note:", error);
+      Alert.alert("Error", "Failed to update note. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleNotebookChange = async (noteId: string, newNotebookId: string, newNotebookTitle: string) => {
+    try {
+      // Update the note's notebookId in the API
+      await updateNote(noteId, { notebookId: newNotebookId });
+      
+      // Update local state
+      setNote(prev => prev ? { ...prev, notebookId: newNotebookId } : null);
+      
+      Alert.alert(
+        "Notebook Updated", 
+        `Note moved to "${newNotebookTitle}" successfully!`,
+        [{ text: "OK" }]
+      );
+      
+    } catch (error) {
+      console.error('Error updating note notebook:', error);
+      Alert.alert(
+        "Error", 
+        "Failed to update note notebook. Please try again.",
+        [{ text: "OK" }]
+      );
+    }
   };
 
   if (loading) {
@@ -111,10 +237,81 @@ const NoteDetailScreen = () => {
             {isEditing ? 'Update your thoughts' : 'View and manage your note'}
           </Text>
         </View>
-        <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, { backgroundColor: colors.primary }]}> 
+        <TouchableOpacity onPress={handleBackNavigation} style={[styles.backButton, { backgroundColor: colors.primary }]}> 
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
       </View>
+
+      {/* Notebook Selector */}
+      <View style={styles.notebookSelectorContainer}>
+        <Pressable
+          onPress={() => setNotebookDropdownVisible(true)}
+          style={[styles.notebookSelector, { borderBottomColor: colors.border }]}
+        >
+          <Ionicons 
+            name="book-outline" 
+            size={18} 
+            color={selectedNotebook ? colors.primary : colors.textSecondary} 
+            style={{ marginRight: 8 }} 
+          />
+          <Text style={{ 
+            color: selectedNotebook ? colors.primary : colors.textSecondary, 
+            fontSize: 15, 
+            marginRight: 6,
+            fontWeight: selectedNotebook ? '600' : '400'
+          }}>
+            {selectedNotebook ? selectedNotebook.title : 'My Notebook'}
+          </Text>
+          <Ionicons name="chevron-down" size={18} color={selectedNotebook ? colors.primary : colors.textSecondary} />
+        </Pressable>
+      </View>
+
+      {/* Notebook Dropdown Modal */}
+      <Modal
+        visible={notebookDropdownVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setNotebookDropdownVisible(false)}
+      >
+        <Pressable 
+          style={styles.dropdownOverlay} 
+          onPress={() => setNotebookDropdownVisible(false)}
+        >
+          <View style={[styles.dropdown, { backgroundColor: colors.surface }]}>
+            {notebooks.map(nb => (
+              <Pressable
+                key={nb.id}
+                onPress={() => { 
+                  setSelectedNotebook(nb); 
+                  setNotebookDropdownVisible(false);
+                  handleNotebookChange(noteId, nb.id, nb.title);
+                }}
+                style={[
+                  styles.dropdownItem,
+                  selectedNotebook?.id === nb.id && { backgroundColor: colors.primary + '20' }
+                ]}
+              >
+                <Ionicons 
+                  name={selectedNotebook?.id === nb.id ? "book" : "book-outline"} 
+                  size={18} 
+                  color={selectedNotebook?.id === nb.id ? colors.primary : colors.text} 
+                  style={{ marginRight: 8 }} 
+                />
+                <Text style={{ 
+                  color: selectedNotebook?.id === nb.id ? colors.primary : colors.text, 
+                  fontSize: 15,
+                  fontWeight: selectedNotebook?.id === nb.id ? '600' : '400'
+                }}>
+                  {nb.title}
+                </Text>
+                {selectedNotebook?.id === nb.id && (
+                  <Ionicons name="checkmark" size={18} color={colors.primary} style={{ marginLeft: 'auto' }} />
+                )}
+              </Pressable>
+            ))}
+          </View>
+        </Pressable>
+      </Modal>
 
       {/* Modern Card Content */}
       <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.text }]}> 
@@ -133,14 +330,23 @@ const NoteDetailScreen = () => {
               onChangeText={setEditedTitle}
               maxLength={60}
             />
-            <TextInput
-              style={[styles.textarea, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border }]}
+            <RichTextEditor
+              value={editedContent}
+              onValueChange={setEditedContent}
               placeholder="Write your note here..."
               placeholderTextColor={colors.textSecondary}
-              value={editedContent}
-              onChangeText={setEditedContent}
-              multiline
-              maxLength={1000}
+              style={{
+                backgroundColor: colors.surface,
+                borderRadius: 10,
+                borderWidth: 1.2,
+                borderColor: colors.border,
+                padding: 12,
+                minHeight: 120,
+                textAlignVertical: "top",
+                marginBottom: 8,
+                color: colors.text,
+              }}
+              pellEditorRef={pellEditorRef}
             />
             <Text style={{ color: colors.textSecondary, fontSize: 13, textAlign: 'right', marginBottom: 16 }}>
               {editedContent.length}/1000 characters
@@ -149,7 +355,24 @@ const NoteDetailScreen = () => {
         ) : (
           <>
             <Text style={[styles.title, { color: colors.text }]}>{note.title}</Text>
-            <Text style={[styles.content, { color: colors.textSecondary }]}>{note.content}</Text>
+            <RichTextEditor
+              value={note.content}
+              onValueChange={() => {}} // No content change handler for display
+              placeholder="Write your note here..."
+              placeholderTextColor={colors.textSecondary}
+              style={{
+                backgroundColor: colors.surface,
+                borderRadius: 10,
+                borderWidth: 1.2,
+                borderColor: colors.border,
+                padding: 12,
+                minHeight: 120,
+                textAlignVertical: "top",
+                marginBottom: 8,
+                color: colors.text,
+              }}
+              pellEditorRef={pellEditorRef}
+            />
           </>
         )}
 
@@ -200,11 +423,28 @@ const NoteDetailScreen = () => {
       {/* Floating Action Button for Delete */}
       <View style={styles.fabContainer} pointerEvents={deleting ? 'none' : 'auto'}>
         <FAB 
-          onPress={handleDelete} 
-          icon={deleting ? 'cloud-upload' : 'trash-outline'}
-          backgroundColor={colors.error}
+          onPress={handleEditNote} 
+          icon={deleting ? 'cloud-upload' : 'pencil-outline'}
+          backgroundColor={colors.primary}
         />
       </View>
+
+      {/* Note Editor Modal */}
+      <NoteEditor
+        visible={editorVisible}
+        onClose={handleCloseEditor}
+        onSave={handleSaveNote}
+        onNotebookChange={handleNotebookChange}
+        saving={saving}
+        editingNote={note ? {
+          id: note.id,
+          title: note.title,
+          content: note.content,
+          notebookId: note.notebookId,
+          notebookTitle: selectedNotebook?.title || 'My Notebook',
+          date: note.date,
+        } : null}
+      />
     </DarkGradientBackground>
   );
 };
@@ -301,6 +541,48 @@ const styles = StyleSheet.create({
     right: 28,
     bottom: 36,
     zIndex: 10,
+  },
+  notebookSelectorContainer: {
+    marginHorizontal: 18,
+    marginTop: 16,
+    marginBottom: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'transparent', // Initially transparent, will be filled by borderBottomColor
+  },
+  notebookSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'transparent', // Initially transparent, will be filled by borderBottomColor
+  },
+  dropdownOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  dropdown: {
+    width: '80%',
+    borderRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee', // Default border color
   },
 });
 

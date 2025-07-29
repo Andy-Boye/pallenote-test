@@ -13,7 +13,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DarkGradientBackground from '../../../components/DarkGradientBackground';
 
@@ -56,23 +56,27 @@ export default function NotebookDetailScreen() {
     const fetchData = async () => {
       try {
         console.log('Starting to fetch data...');
+        console.log('Fetching notes for notebookId:', notebookId);
         setLoading(true);
-        const [notesData, notebookData] = await Promise.all([
-          getNotes(),
-          notebookId !== 'default' ? getNotebookById(notebookId) : Promise.resolve({ id: 'default', title: 'My Notebook' })
-        ]);
+        
+        // Get notes with notebook filtering
+        const notesData = await getNotes({ notebookId });
+        console.log('Raw notes data returned:', notesData);
+        console.log('Notes data length:', notesData.length);
+        
+        const notebookData = notebookId !== 'default' 
+          ? await getNotebookById(notebookId) 
+          : { id: 'default', title: 'My Notebook', ownerId: 'current-user-id', isDefault: true, createdAt: new Date().toISOString() };
         
         setAllNotes(notesData);
         setNotebook(notebookData);
-        
-        // Filter notes for this notebook
-        const filteredNotes = notesData.filter(note => note.notebookId === notebookId);
-        setNotes(filteredNotes);
+        setNotes(notesData); // Notes are already filtered by notebookId
         
         console.log('=== NOTEBOOK DETAIL SCREEN DATA LOADED ===');
-        console.log('NotebookDetailScreen - Loaded all notes:', notesData);
+        console.log('NotebookDetailScreen - Loaded notes for notebook:', notesData);
         console.log('NotebookDetailScreen - Notebook:', notebookData);
-        console.log('NotebookDetailScreen - Filtered notes for notebook:', filteredNotes);
+        console.log('NotebookDetailScreen - Notes count:', notesData.length);
+        console.log('NotebookDetailScreen - Notes details:', notesData.map(n => ({ id: n.id, title: n.title, notebookId: n.notebookId })));
       } catch (error) {
         console.error("Error fetching data:", error);
         setLoading(false);
@@ -87,13 +91,8 @@ export default function NotebookDetailScreen() {
   const openNote = (noteId: string) => {
     const note = notes.find(n => n.id === noteId);
     if (note) {
-      const noteForEditor = {
-        ...note,
-        notebookId: note.notebookId || 'default',
-        notebookTitle: notebook?.title || 'My Notebook',
-      };
-      setEditingNote(noteForEditor);
-      setEditorVisible(true);
+      // Navigate to the note detail screen instead of opening the editor modal
+      router.push(`/notes/${noteId}`);
     }
   };
 
@@ -151,11 +150,89 @@ export default function NotebookDetailScreen() {
       }
       
       console.log('=== NOTE SAVED SUCCESSFULLY ===');
+      console.log('Updated notes count:', notes.length + 1);
       closeNoteEditor();
     } catch (error) {
       console.error('Error saving note:', error);
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Function to refresh notes from API
+  const refreshNotes = async () => {
+    if (!notebookId) return;
+    
+    try {
+      console.log('Refreshing notes for notebook:', notebookId);
+      const notesData = await getNotes({ notebookId });
+      console.log('Refreshed notes data:', notesData);
+      
+      setAllNotes(notesData);
+      setNotes(notesData);
+    } catch (error) {
+      console.error('Error refreshing notes:', error);
+    }
+  };
+
+  const handleNotebookChange = async (noteId: string, newNotebookId: string, newNotebookTitle: string) => {
+    console.log('=== NOTEBOOK CHANGE HANDLER ===');
+    console.log('Note ID:', noteId);
+    console.log('New Notebook ID:', newNotebookId);
+    console.log('New Notebook Title:', newNotebookTitle);
+    console.log('Current notebookId:', notebookId);
+    
+    try {
+      // Update the note's notebookId in the API
+      await updateNote(noteId, { notebookId: newNotebookId });
+      
+      // Update the note in local state immediately
+      setNotes(prevNotes => 
+        prevNotes.map(note => 
+          note.id === noteId 
+            ? { ...note, notebookId: newNotebookId }
+            : note
+        )
+      );
+      
+      // Update allNotes as well
+      setAllNotes(prevAllNotes => 
+        prevAllNotes.map(note => 
+          note.id === noteId 
+            ? { ...note, notebookId: newNotebookId }
+            : note
+        )
+      );
+      
+      console.log('Note notebook updated successfully');
+      
+      // If the note is moved to a different notebook, remove it from current view
+      if (newNotebookId !== notebookId) {
+        setNotes(prevNotes => prevNotes.filter(note => note.id !== noteId));
+        console.log('Note removed from current notebook view');
+        
+        // Show success message
+        Alert.alert(
+          "Note Moved", 
+          `Note moved to "${newNotebookTitle}" successfully!`,
+          [{ text: "OK" }]
+        );
+      } else {
+        // Show success message for same notebook
+        Alert.alert(
+          "Notebook Updated", 
+          `Note assigned to "${newNotebookTitle}" successfully!`,
+          [{ text: "OK" }]
+        );
+      }
+      
+    } catch (error) {
+      console.error('Error updating note notebook:', error);
+      Alert.alert(
+        "Error", 
+        "Failed to update note notebook. Please try again.",
+        [{ text: "OK" }]
+      );
     }
   };
 
@@ -233,6 +310,7 @@ export default function NotebookDetailScreen() {
         visible={editorVisible}
         onClose={closeNoteEditor}
         onSave={handleSaveNote}
+        onNotebookChange={handleNotebookChange}
         saving={saving}
         editingNote={editingNote}
       />
