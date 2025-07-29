@@ -66,9 +66,9 @@ export default function SearchScreen() {
 
   const handleResultPress = (item: any) => {
     // Adjust navigation per item type
-    if (item.type === "note") router.push(`../notebooks/${item.notebookId}/notes/${item.id}`);
-    else if (item.type === "task") router.push(`../tasks/${item.id}`);
-    else if (item.type === "recording") router.push(`../recordings/${item.id}`);
+    if (item.type === "note") router.replace(`../notes/${item.id}`);
+    else if (item.type === "task") router.replace(`../tasks/${item.id}`);
+    else if (item.type === "recording") router.replace(`../recordings/${item.id}`);
   };
 
   return (

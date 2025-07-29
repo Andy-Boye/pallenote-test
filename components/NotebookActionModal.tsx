@@ -12,6 +12,7 @@ interface NotebookActionModalProps {
   onShare: (notebook: Notebook) => void;
   onDeleteNotebookOnly: (notebookId: string) => Promise<void>;
   onDeleteNotebookAndContents: (notebookId: string) => Promise<void>;
+  noteCount?: number;
 }
 
 const NotebookActionModal: React.FC<NotebookActionModalProps> = ({
@@ -22,6 +23,7 @@ const NotebookActionModal: React.FC<NotebookActionModalProps> = ({
   onShare,
   onDeleteNotebookOnly,
   onDeleteNotebookAndContents,
+  noteCount = 0,
 }) => {
   const { colors } = useTheme();
   const [isRenaming, setIsRenaming] = useState(false);
@@ -29,6 +31,14 @@ const NotebookActionModal: React.FC<NotebookActionModalProps> = ({
 
   const handleRename = async () => {
     if (!notebook || !newTitle.trim()) return;
+    
+    // Prevent renaming the default notebook
+    if (notebook.id === 'default') {
+      Alert.alert('Cannot Rename', 'The default notebook cannot be renamed.');
+      setIsRenaming(false);
+      setNewTitle('');
+      return;
+    }
     
     try {
       await onRename(notebook.id, newTitle.trim());
@@ -113,6 +123,9 @@ const NotebookActionModal: React.FC<NotebookActionModalProps> = ({
           </View>
 
           <Text style={[styles.notebookTitle, { color: colors.text }]}>{notebook.title}</Text>
+          <Text style={[styles.noteCount, { color: colors.textSecondary }]}>
+            {noteCount} {noteCount === 1 ? 'note' : 'notes'}
+          </Text>
 
           {isRenaming ? (
             <View style={styles.renameContainer}>
@@ -150,14 +163,25 @@ const NotebookActionModal: React.FC<NotebookActionModalProps> = ({
           ) : (
             <View style={styles.actionsContainer}>
               <TouchableOpacity
-                style={[styles.actionItem, { borderBottomColor: colors.border }]}
+                style={[
+                  styles.actionItem, 
+                  { borderBottomColor: colors.border },
+                  notebook.id === 'default' && { opacity: 0.5 }
+                ]}
                 onPress={() => {
+                  if (notebook.id === 'default') {
+                    Alert.alert('Cannot Rename', 'The default notebook cannot be renamed.');
+                    return;
+                  }
                   setNewTitle(notebook.title);
                   setIsRenaming(true);
                 }}
+                disabled={notebook.id === 'default'}
               >
                 <Ionicons name="create-outline" size={24} color={colors.primary} />
-                <Text style={[styles.actionText, { color: colors.text }]}>Rename Notebook</Text>
+                <Text style={[styles.actionText, { color: colors.text }]}>
+                  {notebook.id === 'default' ? 'Rename Notebook (Disabled)' : 'Rename Notebook'}
+                </Text>
                 <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
 
@@ -171,20 +195,45 @@ const NotebookActionModal: React.FC<NotebookActionModalProps> = ({
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.actionItem, { borderBottomColor: colors.border }]}
-                onPress={handleDeleteNotebookOnly}
+                style={[
+                  styles.actionItem, 
+                  { borderBottomColor: colors.border },
+                  notebook.id === 'default' && { opacity: 0.5 }
+                ]}
+                onPress={() => {
+                  if (notebook.id === 'default') {
+                    Alert.alert('Cannot Delete', 'The default notebook cannot be deleted.');
+                    return;
+                  }
+                  handleDeleteNotebookOnly();
+                }}
+                disabled={notebook.id === 'default'}
               >
                 <Ionicons name="folder-open-outline" size={24} color="#FF9500" />
-                <Text style={[styles.actionText, { color: colors.text }]}>Delete Notebook (Keep Notes)</Text>
+                <Text style={[styles.actionText, { color: colors.text }]}>
+                  {notebook.id === 'default' ? 'Delete Notebook (Disabled)' : 'Delete Notebook (Keep Notes)'}
+                </Text>
                 <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.actionItem]}
-                onPress={handleDeleteNotebookAndContents}
+                style={[
+                  styles.actionItem,
+                  notebook.id === 'default' && { opacity: 0.5 }
+                ]}
+                onPress={() => {
+                  if (notebook.id === 'default') {
+                    Alert.alert('Cannot Delete', 'The default notebook cannot be deleted.');
+                    return;
+                  }
+                  handleDeleteNotebookAndContents();
+                }}
+                disabled={notebook.id === 'default'}
               >
                 <Ionicons name="trash-outline" size={24} color="#FF3B30" />
-                <Text style={[styles.actionText, { color: '#FF3B30' }]}>Delete Notebook & All Notes</Text>
+                <Text style={[styles.actionText, { color: '#FF3B30' }]}>
+                  {notebook.id === 'default' ? 'Delete Notebook & All Notes (Disabled)' : 'Delete Notebook & All Notes'}
+                </Text>
                 <Ionicons name="chevron-forward" size={20} color="#FF3B30" />
               </TouchableOpacity>
             </View>
@@ -225,6 +274,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 20,
+    textAlign: 'center',
+  },
+  noteCount: {
+    fontSize: 14,
+    marginTop: 8,
     textAlign: 'center',
   },
   renameContainer: {

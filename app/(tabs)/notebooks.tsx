@@ -82,7 +82,7 @@ const NotebooksScreen = () => {
     // For "My Notebook" (default), we need to pass the correct parameter
     const notebookId = notebook.id === 'default' ? 'default' : notebook.id;
     
-    router.push({
+    router.replace({
       pathname: "/notebooks/[notebookId]/[index]" as any,
       params: { notebookId: notebookId }
     })
@@ -114,9 +114,10 @@ const NotebooksScreen = () => {
             : notebook
         )
       );
+      Alert.alert('Success', 'Notebook renamed successfully!');
     } catch (error) {
       console.error('Error renaming notebook:', error);
-      throw error;
+      Alert.alert('Error', 'Failed to rename notebook. Please try again.');
     }
   };
 
@@ -128,6 +129,12 @@ const NotebooksScreen = () => {
   };
 
   const handleDeleteNotebookOnly = async (notebookId: string) => {
+    // Prevent deleting the default notebook
+    if (notebookId === 'default') {
+      Alert.alert('Cannot Delete', 'The default notebook cannot be deleted.');
+      return;
+    }
+
     try {
       // Move notes to default notebook first
       await moveNotesToDefaultNotebook(notebookId);
@@ -145,11 +152,17 @@ const NotebooksScreen = () => {
       Alert.alert('Success', 'Notebook deleted. All notes have been moved to "My Notebook".');
     } catch (error) {
       console.error('Error deleting notebook:', error);
-      throw error;
+      Alert.alert('Error', 'Failed to delete notebook. Please try again.');
     }
   };
 
   const handleDeleteNotebookAndContents = async (notebookId: string) => {
+    // Prevent deleting the default notebook
+    if (notebookId === 'default') {
+      Alert.alert('Cannot Delete', 'The default notebook cannot be deleted.');
+      return;
+    }
+
     try {
       // Delete all notes in the notebook
       await deleteNotesByNotebookId(notebookId);
@@ -167,7 +180,7 @@ const NotebooksScreen = () => {
       Alert.alert('Success', 'Notebook and all its notes have been deleted.');
     } catch (error) {
       console.error('Error deleting notebook and contents:', error);
-      throw error;
+      Alert.alert('Error', 'Failed to delete notebook and contents. Please try again.');
     }
   };
 
@@ -353,6 +366,7 @@ const NotebooksScreen = () => {
         onShare={handleShareNotebook}
         onDeleteNotebookOnly={handleDeleteNotebookOnly}
         onDeleteNotebookAndContents={handleDeleteNotebookAndContents}
+        noteCount={selectedNotebook ? notes.filter(note => note.notebookId === selectedNotebook.id).length : 0}
       />
     </DarkGradientBackground>
   )

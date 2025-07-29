@@ -245,7 +245,8 @@ export default function NotebookDetailScreen() {
   };
 
   const goBack = () => {
-    router.back();
+    // Navigate back to the notebooks screen
+    router.replace("/(tabs)/notebooks");
   };
 
   if (!notebookId) {
