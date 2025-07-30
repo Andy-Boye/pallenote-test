@@ -238,8 +238,15 @@ export const deleteNotebook = async (id: string): Promise<void> => {
   console.log(`Notebook ID: ${id}`);
   
   try {
-    console.log(`Making API call to: /notebooks/${id}`);
-    await apiClient.delete(`/notebooks/${id}`);
+    console.log(`Making API call to: /notes/book`);
+    console.log(`Request body: { noteBookId: ${id} }`);
+
+    // Use the specific endpoint with the request body format
+    await apiClient.delete('/notes/book', {
+      data: {
+        noteBookId: parseInt(id) || id
+      }
+    });
     console.log(`Successfully deleted notebook ${id} via API`);
   } catch (error) {
     console.error("Delete notebook error:", error);
@@ -447,5 +454,28 @@ export const getRecycleBinNotebooks = async (): Promise<Notebook[]> => {
     
     // Return empty array if there's an error
     return [];
+  }
+}
+
+// Test function to verify delete notebook functionality
+export const testDeleteNotebook = async (notebookId: string): Promise<void> => {
+  console.log(`=== TESTING DELETE NOTEBOOK FUNCTIONALITY ===`);
+  console.log(`Testing with notebook ID: ${notebookId}`);
+  console.log(`Expected endpoint: DELETE https://pella-notes.onrender.com/api/v1/notes/book`);
+  console.log(`Expected request body: { noteBookId: ${notebookId} }`);
+  
+  try {
+    // Test the delete function
+    await deleteNotebook(notebookId);
+    console.log(`✅ Delete notebook test PASSED for ID: ${notebookId}`);
+  } catch (error) {
+    console.error(`❌ Delete notebook test FAILED for ID: ${notebookId}`);
+    console.error('Test error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      status: (error as any)?.response?.status,
+      data: (error as any)?.response?.data,
+      url: (error as any)?.config?.url,
+    });
+    throw error;
   }
 }

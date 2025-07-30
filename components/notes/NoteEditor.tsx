@@ -214,7 +214,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
       content: noteContent.trim(),
       notebookId: selectedNotebook?.id || 'default',
       notebookTitle: selectedNotebook?.title || 'My Notebook',
-      date: editingNote?.date || new Date().toLocaleDateString(),
+      date: editingNote?.date || new Date().toISOString().split('T')[0], // Use YYYY-MM-DD format
     };
     
     console.log('NoteEditor - Saving note with notebookId:', note.notebookId, 'selectedNotebook:', selectedNotebook); // Debug log

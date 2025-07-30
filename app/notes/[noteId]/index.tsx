@@ -1,5 +1,5 @@
 import { getNotebooks } from "@/api/notebooksApi";
-import { getNoteById, updateNote } from "@/api/notesApi";
+import { deleteNoteWithBody, getNoteById, updateNote } from "@/api/notesApi";
 import type { Note, Notebook } from "@/api/types";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
@@ -25,6 +25,7 @@ const NoteDetailScreen = () => {
   const [notebooks, setNotebooks] = useState<Notebook[]>([]);
   const [selectedNotebook, setSelectedNotebook] = useState<Notebook | null>(null);
   const [notebookDropdownVisible, setNotebookDropdownVisible] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
   const [formatState, setFormatState] = useState({
     bold: false,
     italic: false,
@@ -76,27 +77,39 @@ const NoteDetailScreen = () => {
     }
   }, [note]);
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     Alert.alert(
       "Delete Note",
-      "Are you sure you want to delete this note?",
+      "Are you sure you want to delete this note? This action cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => {
+          onPress: async () => {
             setDeleting(true);
-            setTimeout(() => {
-              setDeleting(false);
-              Alert.alert("Deleted", "Note deleted successfully.");
+            try {
+              // Convert noteId to number for the API
+              const noteIdNumber = parseInt(noteId);
+              if (isNaN(noteIdNumber)) {
+                throw new Error("Invalid note ID");
+              }
+              
+              await deleteNoteWithBody(noteIdNumber);
+              
+              Alert.alert("Success", "Note deleted successfully.");
               // Navigate to the notebook screen instead of notes tab
-              if (note?.notebookId) {
-                router.replace(`/notebooks/${note.notebookId}`);
+              if (note?.notebookId && note.notebookId !== 'default') {
+                router.replace(`/notebooks/${note.notebookId}` as any);
               } else {
                 router.replace("/(tabs)/notes");
               }
-            }, 800);
+            } catch (error) {
+              console.error("Error deleting note:", error);
+              Alert.alert("Error", "Failed to delete note. Please try again.");
+            } finally {
+              setDeleting(false);
+            }
           },
         },
       ]
@@ -237,10 +250,61 @@ const NoteDetailScreen = () => {
             {isEditing ? 'Update your thoughts' : 'View and manage your note'}
           </Text>
         </View>
-        <TouchableOpacity onPress={handleBackNavigation} style={[styles.backButton, { backgroundColor: colors.primary }]}> 
-          <Ionicons name="arrow-back" size={22} color="#fff" />
-        </TouchableOpacity>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity onPress={handleBackNavigation} style={[styles.backButton, { backgroundColor: colors.primary }]}> 
+            <Ionicons name="arrow-back" size={22} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            onPress={() => setMenuVisible(true)} 
+            style={[styles.menuButton, { backgroundColor: colors.surface }]}
+          > 
+            <Ionicons name="ellipsis-vertical" size={22} color={colors.text} />
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {/* Menu Modal */}
+      <Modal
+        visible={menuVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <Pressable 
+          style={styles.menuOverlay} 
+          onPress={() => setMenuVisible(false)}
+        >
+          <View style={[styles.menuContainer, { backgroundColor: colors.surface }]}>
+            <TouchableOpacity
+              style={[styles.menuItem, deleting && { opacity: 0.5 }]}
+              onPress={() => {
+                setMenuVisible(false);
+                handleDelete();
+              }}
+              disabled={deleting}
+            >
+              {deleting ? (
+                <ActivityIndicator size="small" color={colors.error} />
+              ) : (
+                <Ionicons name="trash-outline" size={20} color={colors.error} />
+              )}
+              <Text style={[styles.menuItemText, { color: colors.error }]}>
+                {deleting ? 'Deleting...' : 'Delete Note'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                handleShare();
+              }}
+            >
+              <Ionicons name="share-social-outline" size={20} color={colors.text} />
+              <Text style={[styles.menuItemText, { color: colors.text }]}>Share</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
 
       {/* Notebook Selector */}
       <View style={styles.notebookSelectorContainer}>
@@ -420,12 +484,12 @@ const NoteDetailScreen = () => {
         </View>
       </View>
 
-      {/* Floating Action Button for Delete */}
+      {/* Floating Action Button for Edit */}
       <View style={styles.fabContainer} pointerEvents={deleting ? 'none' : 'auto'}>
         <FAB 
           onPress={handleEditNote} 
-          icon={deleting ? 'cloud-upload' : 'pencil-outline'}
-          backgroundColor={colors.primary}
+          icon={deleting ? 'hourglass-outline' : 'pencil-outline'}
+          backgroundColor={deleting ? colors.warning : colors.primary}
         />
       </View>
 
@@ -468,7 +532,16 @@ const styles = StyleSheet.create({
     marginTop: 2,
     marginBottom: 2,
   },
+  headerButtons: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
   backButton: {
+    borderRadius: 24,
+    padding: 8,
+  },
+  menuButton: {
     borderRadius: 24,
     padding: 8,
   },
@@ -583,6 +656,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#eee', // Default border color
+  },
+  menuOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  menuContainer: {
+    width: '60%',
+    borderRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  menuItemText: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginLeft: 12,
   },
 });
 
