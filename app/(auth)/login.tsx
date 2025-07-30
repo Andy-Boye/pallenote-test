@@ -60,14 +60,6 @@ const LoginScreen = () => {
           <Text style={[styles.emoji, { fontSize: 90 }]}>🔒</Text>
           <Text style={[styles.title, { color: colors.primary }]}>Login</Text>
 
-          <TouchableOpacity
-            style={{ alignSelf: 'flex-end', marginTop: 12, marginRight: 12, padding: 6, borderRadius: 8, backgroundColor: colors.accent }}
-            onPress={() => router.replace('/(tabs)/home')}
-            activeOpacity={0.7}
-          >
-            <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '500' }}>Go to Home</Text>
-          </TouchableOpacity>
-
           <Controller
             control={control}
             name="email"
@@ -130,7 +122,7 @@ const LoginScreen = () => {
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => router.push('/(auth)/signup')}>
-            <Text style={[styles.link, { color: colors.primary }]}>Don’t have an account? Sign Up</Text>
+            <Text style={[styles.link, { color: colors.primary }]}>Don't have an account? Sign Up</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push('/(auth)/forgot-password')}>
             <Text style={[styles.link, { color: colors.primary }]}>Forgot Password?</Text>

@@ -1,4 +1,6 @@
-import { createRegisters1Note, getNotes, shareNote } from "@/api/notesApi";
+import { getNotes, shareNote } from "@/api/notesApi";
+import { getTasks } from "@/api/tasksApi";
+import { getRecordings } from "@/api/recordingApi";
 import type { Note } from "@/api/types";
 import FloatingActionButton from '@/components/FloatingActionButton';
 import RichNoteCard from '@/components/notes/RichNoteCard';
@@ -10,6 +12,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from "react";
 import { Alert, Animated, Dimensions, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import DarkGradientBackground from '../../components/DarkGradientBackground';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const HomeScreen = () => {
   const { colors, isDarkMode } = useTheme()
@@ -20,8 +23,8 @@ const HomeScreen = () => {
   const drawerWidth = Dimensions.get('window').width * 0.5
   const router = useRouter()
   const [notes, setNotes] = useState<Note[]>([]);
-  const [tasks, setTasks] = useState<any[]>([]); // Changed to any[] as Task type is removed
-  const [recordings, setRecordings] = useState<any[]>([]); // Changed to any[] as Recording type is removed
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [recordings, setRecordings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const waveAnimation = useRef(new Animated.Value(0)).current;
 
@@ -33,47 +36,24 @@ const HomeScreen = () => {
         setNotes(notesData);
         
         // Fetch tasks
-        // const tasksData = await getTasks(); // getTasks is removed
-        // setTasks(tasksData);
+        const tasksData = await getTasks();
+        setTasks(tasksData);
         
-        // Mock recordings data (since no API exists yet)
-        setRecordings([
-          {
-            id: '1',
-            title: 'Meeting Recording',
-            duration: '5:30',
-            date: '2024-01-15',
-            size: '2.3MB'
-          },
-          {
-            id: '2',
-            title: 'Voice Note',
-            duration: '1:45',
-            date: '2024-01-14',
-            size: '0.8MB'
-          },
-          {
-            id: '3',
-            title: 'Interview',
-            duration: '12:20',
-            date: '2024-01-13',
-            size: '5.1MB'
-          },
-          {
-            id: '4',
-            title: 'Quick Note',
-            duration: '0:30',
-            date: '2024-01-12',
-            size: '0.3MB'
-          },
-          {
-            id: '5',
-            title: 'Presentation',
-            duration: '8:15',
-            date: '2024-01-11',
-            size: '3.7MB'
+        // Fetch recordings from API and local storage
+        try {
+          const recordingsData = await getRecordings();
+          setRecordings(recordingsData);
+        } catch (error) {
+          console.log('API recordings failed, loading from local storage');
+          // Load from local storage if API fails
+          const storedRecordings = await AsyncStorage.getItem('user_recordings');
+          if (storedRecordings) {
+            const parsedRecordings = JSON.parse(storedRecordings);
+            setRecordings(parsedRecordings);
+          } else {
+            setRecordings([]);
           }
-        ]);
+        }
       } catch (error) {
         console.error("Fetch data error:", error);
         // Fallback to mock data when API fails
@@ -100,93 +80,59 @@ const HomeScreen = () => {
             notebookId: 'default'
           }
         ]);
-        // setTasks([ // setTasks is removed
-        //   {
-        //     id: '1',
-        //     title: 'Complete project proposal',
-        //     completed: false,
-        //     dueDate: '2024-01-20'
-        //   },
-        //   {
-        //     id: '2',
-        //     title: 'Review meeting notes',
-        //     completed: true,
-        //     dueDate: '2024-01-18'
-        //   },
-        //   {
-        //     id: '3',
-        //     title: 'Update documentation',
-        //     completed: false,
-        //     dueDate: '2024-01-25'
-        //   },
-        //   {
-        //     id: '4',
-        //     title: 'Schedule team meeting',
-        //     completed: false,
-        //     dueDate: '2024-01-22'
-        //   },
-        //   {
-        //     id: '5',
-        //     title: 'Prepare presentation',
-        //     completed: true,
-        //     dueDate: '2024-01-16'
-        //   },
-        //   {
-        //     id: '6',
-        //     title: 'Send follow-up emails',
-        //     completed: false,
-        //     dueDate: '2024-01-19'
-        //   },
-        //   {
-        //     id: '7',
-        //     title: 'Update project timeline',
-        //     completed: false,
-        //     dueDate: '2024-01-23'
-        //   },
-        //   {
-        //     id: '8',
-        //     title: 'Review code changes',
-        //     completed: true,
-        //     dueDate: '2024-01-17'
-        //   }
-        // ]);
-        setRecordings([
+        
+        setTasks([
           {
             id: '1',
-            title: 'Meeting Recording',
-            duration: '5:30',
-            date: '2024-01-15',
-            size: '2.3MB'
+            title: 'Complete project proposal',
+            completed: false,
+            dueDate: '2024-01-20'
           },
           {
             id: '2',
-            title: 'Voice Note',
-            duration: '1:45',
-            date: '2024-01-14',
-            size: '0.8MB'
+            title: 'Review meeting notes',
+            completed: true,
+            dueDate: '2024-01-18'
           },
           {
             id: '3',
-            title: 'Interview',
-            duration: '12:20',
-            date: '2024-01-13',
-            size: '5.1MB'
+            title: 'Update documentation',
+            completed: false,
+            dueDate: '2024-01-25'
           },
           {
             id: '4',
-            title: 'Quick Note',
-            duration: '0:30',
-            date: '2024-01-12',
-            size: '0.3MB'
+            title: 'Schedule team meeting',
+            completed: false,
+            dueDate: '2024-01-22'
           },
           {
             id: '5',
-            title: 'Presentation',
-            duration: '8:15',
-            date: '2024-01-11',
-            size: '3.7MB'
+            title: 'Prepare presentation',
+            completed: true,
+            dueDate: '2024-01-16'
+          },
+          {
+            id: '6',
+            title: 'Send follow-up emails',
+            completed: false,
+            dueDate: '2024-01-19'
+          },
+          {
+            id: '7',
+            title: 'Update project timeline',
+            completed: false,
+            dueDate: '2024-01-23'
+          },
+          {
+            id: '8',
+            title: 'Review code changes',
+            completed: true,
+            dueDate: '2024-01-17'
           }
         ]);
+        
+                 setRecordings([]);
       } finally {
         setLoading(false);
       }
@@ -195,10 +141,11 @@ const HomeScreen = () => {
   }, []);
 
   const recentNotes = notes.slice(0, 3);
+  const activeRecordings = recordings.filter(recording => !recording.deletedAt);
   const quickStats = [
     { label: "Notes", count: notes.length, icon: "document-text-outline", color: "#3B82F6", gradient: ["#3B82F6", "#1D4ED8"] },
     { label: "Tasks", count: tasks.length, icon: "checkbox-outline", color: "#10B981", gradient: ["#10B981", "#059669"] },
-    { label: "Recordings", count: recordings.length, icon: "mic-outline", color: "#F59E0B", gradient: ["#F59E0B", "#D97706"] },
+    { label: "Recordings", count: activeRecordings.length, icon: "mic-outline", color: "#F59E0B", gradient: ["#F59E0B", "#D97706"] },
   ]
 
   const settingsOptions = [
@@ -318,20 +265,7 @@ const HomeScreen = () => {
     Alert.alert("Stats", "Detailed statistics coming soon!");
   };
 
-  const handleCreateRegistersNote = async () => {
-    try {
-      console.log('Creating Registers1 note...');
-      const newNote = await createRegisters1Note();
-      console.log('Registers1 note created:', newNote);
-      Alert.alert("Success", "Registers1 note created successfully!");
-      // Refresh notes by calling fetchData again
-      const notesData = await getNotes();
-      setNotes(notesData);
-    } catch (error) {
-      console.error('Error creating Registers1 note:', error);
-      Alert.alert("Error", "Failed to create Registers1 note");
-    }
-  };
+
 
   return (
     <DarkGradientBackground>
@@ -437,13 +371,7 @@ const HomeScreen = () => {
           ))}
         </View>
 
-        {/* Test Button for Registers1 Note */}
-        <TouchableOpacity
-          style={[styles.testButton, { backgroundColor: colors.primary }]}
-          onPress={handleCreateRegistersNote}
-        >
-          <Text style={styles.testButtonText}>Create Registers1 Note</Text>
-        </TouchableOpacity>
+        
 
         {/* Enhanced Recent Items */}
         {loading ? (
@@ -1049,25 +977,7 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
   },
-  testButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 20,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  testButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  
 })
 
 export default HomeScreen

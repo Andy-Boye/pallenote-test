@@ -62,12 +62,8 @@ const ResetPasswordScreen = () => {
 
     try {
       await resetPassword(email, data.newPassword, data.otpCode);
-      Alert.alert("Success", "Password has been reset.", [
-        {
-          text: "OK",
-          onPress: () => router.replace("../auth/login"),
-        },
-      ]);
+      // Navigate to reset validation screen after successful password reset
+      router.replace("/(auth)/reset-validation");
     } catch (error: any) {
       Alert.alert("Error", error.message || "Reset failed");
     }
@@ -82,14 +78,6 @@ const ResetPasswordScreen = () => {
         <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }} keyboardShouldPersistTaps="handled">
           <Text style={[styles.emoji, { fontSize: 90 }]}>🔄</Text>
           <Text style={[styles.title, { color: colors.text }]}>Reset Password</Text>
-
-          <TouchableOpacity
-            style={{ alignSelf: 'flex-end', marginTop: 12, marginRight: 12, padding: 6, borderRadius: 8, backgroundColor: colors.accent }}
-            onPress={() => router.push('/(auth)/reset-validation')}
-            activeOpacity={0.7}
-          >
-            <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '500' }}>Go to Validation</Text>
-          </TouchableOpacity>
 
           <Controller
             control={control}

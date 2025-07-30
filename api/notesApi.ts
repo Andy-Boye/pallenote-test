@@ -1406,6 +1406,26 @@ export const revokeSharedNote = async (shareId: string): Promise<void> => {
   }
 }
 
+// Unshare a note using the specific endpoint
+export const unshareNote = async (shareId: string): Promise<void> => {
+  try {
+    const response = await apiClient.post(`/share-note/unshare`, { shareId });
+    console.log('Note unshared successfully:', shareId);
+    
+    // Update local storage
+    const existingHistory = await getStoredSharingHistory();
+    const updatedHistory = existingHistory.map(record => 
+      record.shareId === shareId 
+        ? { ...record, isActive: false }
+        : record
+    );
+    await storeSharingHistory(updatedHistory);
+  } catch (error) {
+    console.error("Unshare note error:", error);
+    throw error;
+  }
+}
+
 // Get shared notes by note ID
 export const getSharedNotesByNoteId = async (noteId: string): Promise<SharingRecord[]> => {
   try {
@@ -1445,6 +1465,66 @@ export const getSharingStats = async (): Promise<{
       totalReceived: 0,
       activeShares: 0,
       recentShares: 0
+    };
+  }
+}
+
+// Get note owner information
+export const getNoteOwner = async (noteId: string): Promise<{
+  ownerId: string;
+  ownerEmail: string;
+  ownerName?: string;
+  isOwner: boolean;
+}> => {
+  try {
+    const response = await apiClient.get<ApiResponse<{
+      ownerId: string;
+      ownerEmail: string;
+      ownerName?: string;
+      isOwner: boolean;
+    }>>(`/share-note/owner?noteId=${noteId}`);
+    
+    console.log('Get note owner API response:', response.data);
+    
+    // Handle different response structures
+    const responseData = response.data as any;
+    
+    if (responseData && responseData.data) {
+      // Standard ApiResponse format
+      return responseData.data;
+    } else if (responseData && (responseData.ownerId || responseData.ownerEmail)) {
+      // Direct response format
+      return {
+        ownerId: responseData.ownerId || 'unknown',
+        ownerEmail: responseData.ownerEmail || 'unknown@example.com',
+        ownerName: responseData.ownerName,
+        isOwner: responseData.isOwner || false
+      };
+    } else {
+      // Fallback data if response structure is unexpected
+      console.log('Unexpected response structure, using fallback data');
+      return {
+        ownerId: 'unknown',
+        ownerEmail: 'unknown@example.com',
+        ownerName: 'Unknown Owner',
+        isOwner: false
+      };
+    }
+  } catch (error) {
+    console.error("Get note owner error:", error);
+    console.error("Error details:", {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      status: (error as any)?.response?.status,
+      data: (error as any)?.response?.data,
+      url: (error as any)?.config?.url,
+    });
+    
+    // Return fallback data for offline scenario
+    return {
+      ownerId: 'unknown',
+      ownerEmail: 'unknown@example.com',
+      ownerName: 'Unknown Owner',
+      isOwner: false
     };
   }
 }

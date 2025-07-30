@@ -4,7 +4,7 @@ import { useTheme } from "@/contexts/ThemeContext"
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import { useState, useEffect } from "react"
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View, FlatList, ActivityIndicator, TextInput, Modal } from "react-native"
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View, FlatList, ActivityIndicator, TextInput } from "react-native"
 import DarkGradientBackground from '../../components/DarkGradientBackground'
 import { 
   getSharingHistory, 
@@ -36,18 +36,19 @@ interface PallenoteUser {
   lastSeen: string;
 }
 
-type TabType = 'received' | 'sent' | 'history' | 'search';
+type TabType = 'search' | 'history';
+type HistoryFilterType = 'all' | 'sent' | 'received';
 
 const CommunityScreen = () => {
   const { colors } = useTheme()
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<TabType>('received')
+  const [activeTab, setActiveTab] = useState<TabType>('search')
+  const [historyFilter, setHistoryFilter] = useState<HistoryFilterType>('all')
   const [sharingHistory, setSharingHistory] = useState<SharingRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<PallenoteUser[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [showSearchModal, setShowSearchModal] = useState(false);
   const [stats, setStats] = useState({
     totalSent: 0,
     totalReceived: 0,
@@ -65,232 +66,71 @@ const CommunityScreen = () => {
     { id: '6', name: 'David Wilson', email: 'david.wilson@example.com', avatar: 'DW', isOnline: false, lastSeen: '2 days ago' },
   ];
 
-  // Mock data for received shared content (keeping for backward compatibility)
-  const receivedContent: SharedNote[] = [
-    {
-      id: '1',
-      title: 'Meeting Notes - Q4 Planning',
-      sender: 'Sarah Johnson',
-      senderAvatar: 'SJ',
-      date: '2024-01-15',
-      preview: 'Key points from our quarterly planning session...',
-      isRead: false,
-      type: 'note'
-    },
-    {
-      id: '2',
-      title: 'Voice Memo - Project Update',
-      sender: 'Mike Chen',
-      senderAvatar: 'MC',
-      date: '2024-01-14',
-      preview: 'Quick update on the project progress...',
-      isRead: true,
-      type: 'recording',
-      duration: '3:45',
-      size: '2.1MB'
-    },
-  ]
-
-  // Mock data for sent shared content (keeping for backward compatibility)
-  const sentContent: SharedNote[] = [
-    {
-      id: '5',
-      title: 'Weekly Report',
-      sender: 'You',
-      senderAvatar: 'YO',
-      date: '2024-01-15',
-      preview: 'This week\'s progress and next steps...',
-      isRead: true,
-      type: 'note'
-    },
-    {
-      id: '6',
-      title: 'Team Meeting Notes',
-      sender: 'You',
-      senderAvatar: 'YO',
-      date: '2024-01-14',
-      preview: 'Summary of today\'s team meeting...',
-      isRead: true,
-      type: 'note'
-    },
-  ]
-
-  const handleContentPress = (item: SharedNote) => {
-    Alert.alert(
-      item.title,
-      `From: ${item.sender}\nDate: ${item.date}\n\n${item.preview}`,
-      [
-        { text: "Close", style: "cancel" },
-        { text: "Open", onPress: () => console.log('Opening content:', item.id) }
-      ]
-    )
-  }
-
-  const handleDeleteContent = (item: SharedNote) => {
-    Alert.alert(
-      "Delete Shared Content",
-      `Are you sure you want to delete "${item.title}"?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Delete", 
-          style: "destructive",
-          onPress: () => {
-            console.log('Deleting content:', item.id)
-            Alert.alert("Deleted", "Content has been deleted successfully.")
-          }
-        }
-      ]
-    )
-  }
-
-  const handleMarkAsRead = (item: SharedNote) => {
-    console.log('Marking as read:', item.id)
-    Alert.alert("Marked as Read", "Content has been marked as read.")
-  }
-
-  const renderContentItem = ({ item }: { item: SharedNote }) => {
-    const isReceived = activeTab === 'received'
-    
-    return (
-      <TouchableOpacity
-        style={[
-          styles.contentCard,
-          {
-            backgroundColor: colors.surface,
-            borderColor: item.isRead ? colors.border : colors.primary,
-            borderWidth: item.isRead ? 1 : 2,
-          }
-        ]}
-        onPress={() => handleContentPress(item)}
-      >
-        <View style={styles.contentHeader}>
-          <View style={styles.avatarContainer}>
-            <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-              <Text style={[styles.avatarText, { color: colors.background }]}>
-                {item.senderAvatar}
-              </Text>
-            </View>
-            {!item.isRead && (
-              <View style={[styles.unreadBadge, { backgroundColor: colors.primary }]} />
-            )}
-          </View>
-          
-          <View style={styles.contentInfo}>
-            <Text style={[styles.contentTitle, { color: colors.text }]} numberOfLines={1}>
-              {item.title}
-            </Text>
-            <Text style={[styles.senderName, { color: colors.textSecondary }]}>
-              {item.sender}
-            </Text>
-            <Text style={[styles.contentDate, { color: colors.textSecondary }]}>
-              {item.date}
-            </Text>
-          </View>
-
-          <View style={styles.contentActions}>
-            <View style={[styles.typeIcon, { backgroundColor: item.type === 'recording' ? '#F59E0B' : '#3B82F6' }]}>
-              <Ionicons 
-                name={item.type === 'recording' ? 'mic' : 'document-text'} 
-                size={16} 
-                color="white" 
-              />
-            </View>
-            {item.type === 'recording' && (
-              <Text style={[styles.durationText, { color: colors.textSecondary }]}>
-                {item.duration}
-              </Text>
-            )}
-          </View>
-        </View>
-
-        <Text style={[styles.contentPreview, { color: colors.textSecondary }]} numberOfLines={2}>
-          {item.preview}
-        </Text>
-
-        <View style={styles.actionButtons}>
-          {isReceived && !item.isRead && (
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: colors.primary }]}
-              onPress={() => handleMarkAsRead(item)}
-            >
-              <Ionicons name="checkmark" size={16} color="white" />
-              <Text style={[styles.actionButtonText, { color: colors.background }]}>
-                Mark Read
-              </Text>
-            </TouchableOpacity>
-          )}
-          
-          <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={() => handleContentPress(item)}
-          >
-            <Ionicons name="eye" size={16} color={colors.primary} />
-            <Text style={[styles.actionButtonText, { color: colors.primary }]}>
-              View
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: colors.error }]}
-            onPress={() => handleDeleteContent(item)}
-          >
-            <Ionicons name="trash" size={16} color="white" />
-            <Text style={[styles.actionButtonText, { color: colors.background }]}>
-              Delete
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
-    )
-  }
+  // Recent accounts for the main search screen
+  const recentAccounts: PallenoteUser[] = [
+    { id: '1', name: 'Sarah Johnson', email: 'sarah.johnson@example.com', avatar: 'SJ', isOnline: true, lastSeen: '2 minutes ago' },
+    { id: '3', name: 'Emma Davis', email: 'emma.davis@example.com', avatar: 'ED', isOnline: true, lastSeen: '5 minutes ago' },
+    { id: '5', name: 'Jessica Lee', email: 'jessica.lee@example.com', avatar: 'JL', isOnline: true, lastSeen: '1 minute ago' },
+  ];
 
   useEffect(() => {
-    loadSharingHistory();
-  }, [activeTab]);
+    if (activeTab === 'history') {
+      loadSharingHistory();
+    }
+  }, [activeTab, historyFilter]);
 
   const loadSharingHistory = async () => {
     setIsLoading(true);
     try {
       let history: SharingRecord[] = [];
       
-      switch (activeTab) {
-        case 'received':
-          history = await getReceivedShares();
-          break;
+      switch (historyFilter) {
         case 'sent':
           history = await getSentShares();
           break;
-        case 'history':
-          // Combine sent and received for history tab
+        case 'received':
+          history = await getReceivedShares();
+          break;
+        case 'all':
+        default:
+          // Combine sent and received for all filter
           const sentShares = await getSentShares();
           const receivedShares = await getReceivedShares();
           history = [...sentShares, ...receivedShares].sort((a, b) => 
             new Date(b.sharedAt).getTime() - new Date(a.sharedAt).getTime()
           );
           break;
-        case 'search':
-          // Search functionality will be handled separately
-          break;
       }
       
       setSharingHistory(history);
       
-      // Calculate stats
+      // Calculate real-time stats from actual data
       const allHistory = await getSharingHistory();
       const now = new Date();
       const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       
+      const totalSent = allHistory.filter(record => record.status === 'sent').length;
+      const totalReceived = allHistory.filter(record => record.status === 'received').length;
+      const activeShares = allHistory.filter(record => record.isActive).length;
+      const recentShares = allHistory.filter(record => 
+        new Date(record.sharedAt) > oneWeekAgo
+      ).length;
+      
       setStats({
-        totalSent: allHistory.filter(record => record.status === 'sent').length,
-        totalReceived: allHistory.filter(record => record.status === 'received').length,
-        activeShares: allHistory.filter(record => record.isActive).length,
-        recentShares: allHistory.filter(record => 
-          new Date(record.sharedAt) > oneWeekAgo
-        ).length,
+        totalSent,
+        totalReceived,
+        activeShares,
+        recentShares,
       });
     } catch (error) {
       console.error('Error loading sharing history:', error);
+      // Set default stats if API fails
+      setStats({
+        totalSent: 0,
+        totalReceived: 0,
+        activeShares: 0,
+        recentShares: 0,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -547,9 +387,6 @@ const CommunityScreen = () => {
               {user.avatar}
             </Text>
           </View>
-          <View style={[styles.onlineIndicator, { 
-            backgroundColor: user.isOnline ? colors.success : colors.textSecondary 
-          }]} />
         </View>
         
         <View style={styles.userInfo}>
@@ -559,8 +396,34 @@ const CommunityScreen = () => {
           <Text style={[styles.userEmail, { color: colors.textSecondary }]}>
             {user.email}
           </Text>
-          <Text style={[styles.userLastSeen, { color: colors.textSecondary }]}>
-            {user.isOnline ? 'Online' : `Last seen ${user.lastSeen}`}
+        </View>
+        
+        <Ionicons name="share-outline" size={20} color={colors.primary} />
+      </View>
+    </TouchableOpacity>
+  );
+
+  const renderRecentAccount = (user: PallenoteUser) => (
+    <TouchableOpacity
+      key={user.id}
+      style={[styles.recentAccountCard, { backgroundColor: colors.surface }]}
+      onPress={() => handleShareWithUser(user)}
+    >
+      <View style={styles.recentAccountHeader}>
+        <View style={styles.userAvatarContainer}>
+          <View style={[styles.userAvatar, { backgroundColor: colors.primary }]}>
+            <Text style={[styles.userAvatarText, { color: colors.background }]}>
+              {user.avatar}
+            </Text>
+          </View>
+        </View>
+        
+        <View style={styles.userInfo}>
+          <Text style={[styles.userName, { color: colors.text }]}>
+            {user.name}
+          </Text>
+          <Text style={[styles.userEmail, { color: colors.textSecondary }]}>
+            {user.email}
           </Text>
         </View>
         
@@ -573,12 +436,12 @@ const CommunityScreen = () => {
     <View style={styles.emptyState}>
       <Ionicons name="share-outline" size={48} color={colors.textSecondary} />
       <Text style={[styles.emptyStateTitle, { color: colors.text }]}>
-        No {activeTab === 'sent' ? 'sent' : activeTab === 'received' ? 'received' : ''} shares yet
+        No {historyFilter === 'sent' ? 'sent' : historyFilter === 'received' ? 'received' : ''} shares yet
       </Text>
       <Text style={[styles.emptyStateSubtitle, { color: colors.textSecondary }]}>
-        {activeTab === 'sent' 
+        {historyFilter === 'sent' 
           ? 'Start sharing your notes to see them here'
-          : activeTab === 'received' 
+          : historyFilter === 'received' 
           ? 'When others share notes with you, they\'ll appear here'
           : 'Start sharing notes to see your sharing history'
         }
@@ -587,7 +450,8 @@ const CommunityScreen = () => {
   );
 
   const renderSearchContent = () => (
-    <View style={styles.searchContainer}>
+    <ScrollView style={styles.searchContainer} showsVerticalScrollIndicator={false}>
+      {/* Search Input */}
       <View style={[styles.searchInputContainer, { backgroundColor: colors.surface }]}>
         <Ionicons name="search" size={20} color={colors.textSecondary} />
         <TextInput
@@ -607,6 +471,17 @@ const CommunityScreen = () => {
         </TouchableOpacity>
       </View>
       
+      {/* Recent Accounts Section */}
+      <View style={styles.recentAccountsSection}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          Recent Accounts
+        </Text>
+        <View style={styles.recentAccountsList}>
+          {recentAccounts.map(renderRecentAccount)}
+        </View>
+      </View>
+      
+      {/* Search Results */}
       {searchResults.length > 0 && (
         <View style={styles.searchResultsContainer}>
           <Text style={[styles.searchResultsTitle, { color: colors.text }]}>
@@ -627,31 +502,100 @@ const CommunityScreen = () => {
           </Text>
         </View>
       )}
-    </View>
+    </ScrollView>
   );
 
-  const renderSharingHistoryContent = () => {
-    if (isLoading) {
-      return (
+  const renderHistoryContent = () => (
+    <View style={styles.historyContainer}>
+      {/* Filter Buttons */}
+      <View style={styles.filterButtonsContainer}>
+        <TouchableOpacity
+          style={[
+            styles.filterButton,
+            {
+              backgroundColor: historyFilter === 'all' ? colors.primary : colors.surface,
+              borderColor: colors.primary
+            }
+          ]}
+          onPress={() => setHistoryFilter('all')}
+        >
+          <Ionicons 
+            name="time" 
+            size={16} 
+            color={historyFilter === 'all' ? colors.background : colors.primary} 
+          />
+          <Text style={[
+            styles.filterButtonText,
+            { color: historyFilter === 'all' ? colors.background : colors.primary }
+          ]}>
+            All
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.filterButton,
+            {
+              backgroundColor: historyFilter === 'sent' ? colors.primary : colors.surface,
+              borderColor: colors.primary
+            }
+          ]}
+          onPress={() => setHistoryFilter('sent')}
+        >
+          <Ionicons 
+            name="arrow-up" 
+            size={16} 
+            color={historyFilter === 'sent' ? colors.background : colors.primary} 
+          />
+          <Text style={[
+            styles.filterButtonText,
+            { color: historyFilter === 'sent' ? colors.background : colors.primary }
+          ]}>
+            Sent
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.filterButton,
+            {
+              backgroundColor: historyFilter === 'received' ? colors.primary : colors.surface,
+              borderColor: colors.primary
+            }
+          ]}
+          onPress={() => setHistoryFilter('received')}
+        >
+          <Ionicons 
+            name="arrow-down" 
+            size={16} 
+            color={historyFilter === 'received' ? colors.background : colors.primary} 
+          />
+          <Text style={[
+            styles.filterButtonText,
+            { color: historyFilter === 'received' ? colors.background : colors.primary }
+          ]}>
+            Received
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* History Content */}
+      {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
             Loading sharing history...
           </Text>
         </View>
-      );
-    }
-
-    if (sharingHistory.length > 0) {
-      return (
+      ) : sharingHistory.length > 0 ? (
         <View style={styles.sharingHistoryContainer}>
           {sharingHistory.map(renderSharingRecord)}
         </View>
-      );
-    }
-
-    return renderEmptyState();
-  };
+      ) : (
+        renderEmptyState()
+      )}
+    </View>
+  );
 
   const renderContent = () => {
     if (activeTab === 'search') {
@@ -659,39 +603,10 @@ const CommunityScreen = () => {
     }
 
     if (activeTab === 'history') {
-      return renderSharingHistoryContent();
+      return renderHistoryContent();
     }
 
-    const currentContent = activeTab === 'received' ? receivedContent : sentContent;
-    
-    return (
-      <FlatList
-        data={currentContent}
-        renderItem={renderContentItem}
-        keyExtractor={(item) => item.id}
-        style={styles.contentList}
-        contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons 
-              name={activeTab === 'received' ? 'download-outline' : 'share-outline'} 
-              size={60} 
-              color={colors.textSecondary} 
-            />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>
-              No {activeTab === 'received' ? 'Received' : 'Sent'} Content
-            </Text>
-            <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-              {activeTab === 'received' 
-                ? 'Content shared with you will appear here' 
-                : 'Content you\'ve shared will appear here'
-              }
-            </Text>
-          </View>
-        }
-      />
-    );
+    return renderSearchContent(); // Default to search
   };
 
   return (
@@ -702,9 +617,7 @@ const CommunityScreen = () => {
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Community</Text>
-        <TouchableOpacity onPress={() => setShowSearchModal(true)}>
-          <Ionicons name="search" size={24} color={colors.primary} />
-        </TouchableOpacity>
+        <View style={{ width: 24 }} />
       </View>
 
       {/* Stats */}
@@ -749,45 +662,22 @@ const CommunityScreen = () => {
           style={[
             styles.tab,
             {
-              backgroundColor: activeTab === 'received' ? colors.primary : 'transparent',
+              backgroundColor: activeTab === 'search' ? colors.primary : 'transparent',
               borderColor: colors.primary
             }
           ]}
-          onPress={() => setActiveTab('received')}
+          onPress={() => setActiveTab('search')}
         >
           <Ionicons 
-            name="download" 
+            name="search" 
             size={20} 
-            color={activeTab === 'received' ? colors.background : colors.primary} 
+            color={activeTab === 'search' ? colors.background : colors.primary} 
           />
           <Text style={[
             styles.tabText,
-            { color: activeTab === 'received' ? colors.background : colors.primary }
+            { color: activeTab === 'search' ? colors.background : colors.primary }
           ]}>
-            Received ({receivedContent.filter(item => !item.isRead).length})
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.tab,
-            {
-              backgroundColor: activeTab === 'sent' ? colors.primary : 'transparent',
-              borderColor: colors.primary
-            }
-          ]}
-          onPress={() => setActiveTab('sent')}
-        >
-          <Ionicons 
-            name="share" 
-            size={20} 
-            color={activeTab === 'sent' ? colors.background : colors.primary} 
-          />
-          <Text style={[
-            styles.tabText,
-            { color: activeTab === 'sent' ? colors.background : colors.primary }
-          ]}>
-            Sent ({sentContent.length})
+            Search
           </Text>
         </TouchableOpacity>
 
@@ -811,29 +701,6 @@ const CommunityScreen = () => {
             { color: activeTab === 'history' ? colors.background : colors.primary }
           ]}>
             History
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.tab,
-            {
-              backgroundColor: activeTab === 'search' ? colors.primary : 'transparent',
-              borderColor: colors.primary
-            }
-          ]}
-          onPress={() => setActiveTab('search')}
-        >
-          <Ionicons 
-            name="search" 
-            size={20} 
-            color={activeTab === 'search' ? colors.background : colors.primary} 
-          />
-          <Text style={[
-            styles.tabText,
-            { color: activeTab === 'search' ? colors.background : colors.primary }
-          ]}>
-            Search
           </Text>
         </TouchableOpacity>
       </View>
@@ -1013,8 +880,7 @@ const styles = StyleSheet.create({
   },
   // Search Styles
   searchContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 16,
+    flex: 1, // Make ScrollView take full height
   },
   searchInputContainer: {
     flexDirection: 'row',
@@ -1113,6 +979,33 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
     paddingHorizontal: 32,
+  },
+  // Recent Accounts Styles
+  recentAccountsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  recentAccountsList: {
+    gap: 12,
+  },
+  recentAccountCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  recentAccountHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 12,
   },
   // Content Card Styles
   contentList: {
@@ -1228,6 +1121,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
     lineHeight: 20,
+  },
+  // Filter Button Styles
+  filterButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    gap: 8,
+  },
+  filterButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 6,
+  },
+  filterButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  historyContainer: {
+    flex: 1,
   },
 })
 

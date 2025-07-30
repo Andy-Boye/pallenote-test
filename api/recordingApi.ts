@@ -49,7 +49,9 @@ export const getRecordings = async (): Promise<Recording[]> => {
     return response.data.data
   } catch (error) {
     console.error("Get recordings error:", error)
-    throw error
+    // Return empty array if network error - no mock data
+    console.log('Returning empty recordings array');
+    return [];
   }
 }
 

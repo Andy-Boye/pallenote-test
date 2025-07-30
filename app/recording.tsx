@@ -8,6 +8,7 @@ import Slider from '@react-native-community/slider';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Audio } from 'expo-av';
 import { startRecording, stopRecording, requestAudioPermissions } from '../utils/audioUtils';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -212,6 +213,22 @@ const RecordingScreen = () => {
     setRecordingFormat(RECORDING_TEMPLATES[0].defaultFormat);
     setSampleRate(RECORDING_TEMPLATES[0].defaultSampleRate);
     setBitrate(RECORDING_TEMPLATES[0].defaultBitrate);
+    
+    // Load recordings from local storage
+    const loadRecordingsFromStorage = async () => {
+      try {
+        const storedRecordings = await AsyncStorage.getItem('user_recordings');
+        if (storedRecordings) {
+          const parsedRecordings = JSON.parse(storedRecordings);
+          setRecordings(parsedRecordings);
+          console.log('Loaded recordings from local storage:', parsedRecordings.length);
+        }
+      } catch (error) {
+        console.error('Error loading recordings from storage:', error);
+      }
+    };
+    
+    loadRecordingsFromStorage();
     
     // Initialize audio session with better error handling
     const initializeAudioSession = async () => {
@@ -564,6 +581,7 @@ const RecordingScreen = () => {
     await resetPlayback();
     setIsRecording(false);
     setIsPaused(false);
+    
     const newRecording = {
       id: Date.now().toString(),
       title: recordingTitle || generateRecordingTitle(),
@@ -585,6 +603,19 @@ const RecordingScreen = () => {
       linkedNoteTitle: linkedNoteTitle,
       uri: currentRecordingUri || undefined,
     };
+    
+    // Save to local storage first
+    try {
+      const existingRecordings = await AsyncStorage.getItem('user_recordings');
+      const recordingsArray = existingRecordings ? JSON.parse(existingRecordings) : [];
+      recordingsArray.unshift(newRecording);
+      await AsyncStorage.setItem('user_recordings', JSON.stringify(recordingsArray));
+      console.log('Recording saved to local storage');
+    } catch (error) {
+      console.error('Error saving recording to local storage:', error);
+    }
+    
+    // Update state
     setRecordings([newRecording, ...recordings]);
     await discardRecording();
     setShowSaveDialog(false);

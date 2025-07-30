@@ -14,10 +14,22 @@ const ForgotPasswordScreen = () => {
   const [email, setEmail] = useState("");
 
   const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      Alert.alert("Error", "Please enter your email address");
+      return;
+    }
+
     try {
       await forgotPassword(email);
       Alert.alert("Check your email", "Password reset instructions sent");
-      router.back();
+      // Navigate to OTP verification for password reset
+      router.replace({
+        pathname: "/(auth)/otp-verification" as any,
+        params: { 
+          email: email,
+          onSuccessRoute: "/(auth)/reset-password"
+        }
+      });
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to send reset email");
     }
@@ -30,13 +42,6 @@ const ForgotPasswordScreen = () => {
         style={[styles.container, { backgroundColor: colors.background }]}
       >
         <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }} keyboardShouldPersistTaps="handled">
-          <TouchableOpacity
-            style={{ alignSelf: 'flex-end', marginTop: 12, marginRight: 12, padding: 6, borderRadius: 8, backgroundColor: colors.accent }}
-            onPress={() => router.push('/(auth)/reset-password')}
-            activeOpacity={0.7}
-          >
-            <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '500' }}>Go to Reset Password</Text>
-          </TouchableOpacity>
           <Text style={[styles.emoji, { fontSize: 90 }]}>🔑</Text>
           <Text style={[styles.title, { color: colors.primary }]}>Forgot Password</Text>
 
