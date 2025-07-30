@@ -62,6 +62,7 @@ const SignupScreen = () => {
         pathname: "/(auth)/otp-verification" as any,
         params: { 
           email: data.email,
+          name: data.name,
           onSuccessRoute: "/(tabs)/home"
         }
       });

@@ -23,7 +23,7 @@ const OtpVerificationScreen = () => {
   const { colors } = useTheme();
   const { verifyOtp, resendOtp } = useAuth();
   const router = useRouter();
-  const params = useLocalSearchParams<{ email?: string; onSuccessRoute?: string }>();
+  const params = useLocalSearchParams<{ email?: string; onSuccessRoute?: string; name?: string }>();
   const email = params.email || "";
   const onSuccessRoute = params.onSuccessRoute || "/(auth)/login";
 
@@ -101,13 +101,27 @@ const OtpVerificationScreen = () => {
     try {
       const code = otp.join("");
       await verifyOtp(email, code);
-      // If navigating to reset-password, pass the email as parameter
+      
+      // Check if this is a signup flow (coming from signup screen)
+      const isSignupFlow = onSuccessRoute === "/(tabs)/home" && email;
+      
       if (onSuccessRoute === "/(auth)/reset-password") {
+        // Reset password flow
         router.replace({
           pathname: "/(auth)/reset-password" as any,
           params: { email: email }
         });
+      } else if (isSignupFlow) {
+        // Signup flow - navigate to success screen
+        router.replace({
+          pathname: "/(auth)/signup-success" as any,
+          params: { 
+            email: email,
+            name: params.name || ""
+          }
+        });
       } else {
+        // Other flows (login, etc.)
         router.replace(onSuccessRoute as any);
       }
     } catch (err) {

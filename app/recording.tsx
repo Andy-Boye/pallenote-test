@@ -130,7 +130,6 @@ const RecordingScreen = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [transcription, setTranscription] = useState("");
   const [recordingTitle, setRecordingTitle] = useState("");
   const [currentRecordingUri, setCurrentRecordingUri] = useState<string | null>(null);
   const [currentRecording, setCurrentRecording] = useState<Audio.Recording | null>(null);
@@ -269,12 +268,7 @@ const RecordingScreen = () => {
     if (isRecording && !isPaused) {
       interval = setInterval(() => {
         setRecordingTime((t) => t + 1);
-        // Simulate real-time transcription with better text
-        const words = ['Hello', 'world', 'this', 'is', 'a', 'test', 'recording', 'for', 'the', 'app', 'development', 'process', 'continues', 'with', 'improvements'];
-        if (Math.random() > 0.7) {
-          const randomWord = words[Math.floor(Math.random() * words.length)];
-          setTranscription((prev) => prev + (prev.endsWith(' ') ? '' : ' ') + randomWord + ' ');
-        }
+
         
         // Simulate audio level changes with gain control
         const baseLevel = Math.random() * 100;
@@ -295,13 +289,13 @@ const RecordingScreen = () => {
       Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
-            toValue: 1.2,
-            duration: 1000,
+            toValue: 1.3,
+            duration: 800,
             useNativeDriver: true,
           }),
           Animated.timing(pulseAnim, {
             toValue: 1,
-            duration: 1000,
+            duration: 800,
             useNativeDriver: true,
           }),
         ])
@@ -396,7 +390,6 @@ const RecordingScreen = () => {
       setIsRecording(true);
       setIsPaused(false);
       setRecordingTime(0);
-      setTranscription("");
       setRecordingTitle(generateRecordingTitle());
       
       // Request permissions and start recording
@@ -510,7 +503,6 @@ const RecordingScreen = () => {
       setIsRecording(false);
       setIsPaused(false);
       setRecordingTime(0);
-      setTranscription("");
       setRecordingTitle("");
       setLinkedNoteId(null);
       setLinkedNoteTitle("");
@@ -588,7 +580,7 @@ const RecordingScreen = () => {
       duration: formatTime(recordingTime),
       date: new Date().toISOString().split("T")[0],
       size: `${(recordingTime * bitrate / 8 / 1024).toFixed(1)} KB`,
-      transcription: transcription.trim(),
+      transcription: "",
       quality: recordingQuality,
       category: selectedCategory.id,
       template: selectedTemplate.id,
@@ -835,9 +827,9 @@ const RecordingScreen = () => {
                 style={[styles.recordingButton, { 
                   backgroundColor: isRecording ? colors.error : (isRetrying ? colors.warning : colors.primary), 
                   shadowColor: isDarkMode ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0.2)', 
-                  shadowOpacity: 0.2, 
-                  shadowRadius: 12, 
-                  elevation: 12,
+                  shadowOpacity: isRecording ? 0.4 : 0.2, 
+                  shadowRadius: isRecording ? 16 : 12, 
+                  elevation: isRecording ? 16 : 12,
                   borderWidth: 2,
                   borderColor: isRecording ? colors.error : (isRetrying ? colors.warning : colors.primary)
                 }]}
@@ -877,29 +869,7 @@ const RecordingScreen = () => {
               </Text>
             )}
 
-            {/* Enhanced Transcription Area */}
-            {isRecording && transcription && (
-              <View style={[styles.transcriptionContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <View style={styles.transcriptionHeader}>
-                  <Ionicons name="text-outline" size={16} color={colors.primary} />
-                  <Text style={[styles.transcriptionTitle, { color: colors.text }]}>Live Transcription</Text>
-                  <View style={[styles.transcriptionIndicator, { backgroundColor: colors.success }]} />
-                </View>
-                <ScrollView style={styles.transcriptionScroll} showsVerticalScrollIndicator={false}>
-                  <Text style={[styles.transcription, { color: colors.text }]}>{transcription}</Text>
-                </ScrollView>
-                <View style={[styles.transcriptionActions, { borderTopColor: colors.border }]}>
-                  <TouchableOpacity style={styles.transcriptionAction}>
-                    <Ionicons name="copy-outline" size={16} color={colors.textSecondary} />
-                    <Text style={[styles.transcriptionActionText, { color: colors.textSecondary }]}>Copy</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.transcriptionAction}>
-                    <Ionicons name="share-outline" size={16} color={colors.textSecondary} />
-                    <Text style={[styles.transcriptionActionText, { color: colors.textSecondary }]}>Share</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
+
           </View>
 
           {/* Enhanced Recordings Section */}
@@ -1781,55 +1751,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
     marginTop: 10,
   },
-  transcriptionContainer: {
-    width: '100%',
-    marginTop: 20,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    maxHeight: 200,
-  },
-  transcriptionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  transcriptionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 6,
-    flex: 1,
-  },
-  transcriptionIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  transcriptionScroll: {
-    maxHeight: 100,
-  },
-  transcription: { 
-    fontSize: 14,
-    lineHeight: 20,
-    fontStyle: "italic",
-  },
-  transcriptionActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-  },
-  transcriptionAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-  },
-  transcriptionActionText: {
-    fontSize: 12,
-    marginLeft: 4,
-  },
+
   recordingsSection: { 
     marginTop: 40, 
     paddingHorizontal: 20 
