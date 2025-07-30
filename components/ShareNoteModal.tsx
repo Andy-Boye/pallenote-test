@@ -1,23 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Modal,
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  Linking,
-  Share,
-  PermissionsAndroid,
-  Platform,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { getSharingStats, shareNote } from '@/api/notesApi';
 import { useTheme } from '@/contexts/ThemeContext';
-import { shareNote, getSharingStats } from '@/api/notesApi';
+import { stripHtmlTags } from '@/utils/htmlUtils';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useEffect, useState } from 'react';
+import {
+    ActivityIndicator,
+    Alert,
+    Linking,
+    Modal,
+    PermissionsAndroid,
+    Platform,
+    Pressable,
+    ScrollView,
+    Share,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 
 interface ShareNoteModalProps {
   visible: boolean;
@@ -408,10 +409,12 @@ const ShareNoteModal: React.FC<ShareNoteModalProps> = ({
                   </Text>
                 </View>
                 <Text style={[styles.notePreview, { color: colors.textSecondary }]}>
-                  {note.content.length > 120 
-                    ? note.content.slice(0, 120) + '...' 
-                    : note.content
-                  }
+                  {(() => {
+                    const cleanContent = stripHtmlTags(note.content);
+                    return cleanContent.length > 120 
+                      ? cleanContent.slice(0, 120) + '...' 
+                      : cleanContent;
+                  })()}
                 </Text>
               </View>
             )}

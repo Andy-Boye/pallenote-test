@@ -1,13 +1,14 @@
 "use client";
 
-import { createNote, getNotes, updateNote, shareNote } from "@/api/notesApi";
+import { createNote, deleteNote, getNotes, updateNote, shareNote } from "@/api/notesApi";
 import type { Note } from "@/api/types";
 import FAB from "@/components/FAB";
 import {
-  NoteEditor,
-  NotesHeader,
-  NotesList,
+    NoteEditor,
+    NotesHeader,
+    NotesList,
 } from "@/components/notes";
+import { SortOption } from "@/components/notes/SortModal";
 import SearchBar from "@/components/SearchBar";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -23,6 +24,9 @@ const NotesScreen = () => {
   const [searchText, setSearchText] = useState("");
   const [editorVisible, setEditorVisible] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [currentSort, setCurrentSort] = useState<SortOption>('dateCreated');
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedNotes, setSelectedNotes] = useState<string[]>([]);
   const [editingNote, setEditingNote] = useState<{
     id: string;
     title: string;
@@ -138,6 +142,72 @@ const NotesScreen = () => {
     }
   };
 
+  const handleSort = (sortOption: SortOption) => {
+    setCurrentSort(sortOption);
+  };
+
+  const handleToggleSelectionMode = () => {
+    setSelectionMode(!selectionMode);
+    setSelectedNotes([]);
+  };
+
+  const handleNoteLongPress = (noteId: string) => {
+    if (!selectionMode) {
+      setSelectionMode(true);
+      setSelectedNotes([noteId]); // Select the long-pressed note
+    }
+  };
+
+  const handleNoteSelect = (noteId: string, selected: boolean) => {
+    if (selected) {
+      setSelectedNotes(prev => [...prev, noteId]);
+    } else {
+      setSelectedNotes(prev => prev.filter(id => id !== noteId));
+    }
+  };
+
+  const handleSelectAll = () => {
+    setSelectedNotes(notes.map(note => note.id));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedNotes([]);
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedNotes.length === 0) return;
+
+    Alert.alert(
+      "Delete Notes",
+      `Are you sure you want to delete ${selectedNotes.length} note(s)?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              // Delete each selected note
+              for (const noteId of selectedNotes) {
+                await deleteNote(noteId);
+              }
+              
+              // Update local state
+              setNotes(prevNotes => prevNotes.filter(note => !selectedNotes.includes(note.id)));
+              setSelectedNotes([]);
+              setSelectionMode(false);
+              
+              Alert.alert("Success", `${selectedNotes.length} note(s) deleted successfully!`);
+            } catch (error) {
+              console.error('Error deleting notes:', error);
+              Alert.alert("Error", "Failed to delete some notes. Please try again.");
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const handleShareNote = async (note: Note) => {
     // The share functionality is now handled by the ShareNoteModal component
     // This function is kept for backward compatibility but is no longer used
@@ -192,24 +262,40 @@ const NotesScreen = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <NotesHeader />
+      <NotesHeader 
+        onSort={handleSort}
+        currentSort={currentSort}
+        selectionMode={selectionMode}
+        selectedCount={selectedNotes.length}
+        onToggleSelectionMode={handleToggleSelectionMode}
+        onDeleteSelected={handleDeleteSelected}
+      />
       <SearchBar 
         value={searchText} 
         onChangeText={setSearchText} 
         placeholder="Search notes..."
         onClear={() => setSearchText('')}
       />
-      <NotesList 
-        notes={notes} 
-        onNotePress={openNote} 
+             <NotesList 
+         notes={notes} 
+         onNotePress={openNote} 
         onShare={handleShareNote}
-        searchText={searchText} 
-      />
+         searchText={searchText} 
+         sortOption={currentSort}
+         selectionMode={selectionMode}
+         selectedNotes={selectedNotes}
+         onNoteSelect={handleNoteSelect}
+         onSelectAll={handleSelectAll}
+         onDeselectAll={handleDeselectAll}
+         onNoteLongPress={handleNoteLongPress}
+       />
       
       {/* Floating Action Button */}
-      <View style={styles.fabContainer}>
-        <FAB onPress={openNoteEditor} icon="add" size={28} color={colors.success} />
-      </View>
+      {!selectionMode && (
+        <View style={styles.fabContainer}>
+          <FAB onPress={openNoteEditor} icon="add" size={28} color={colors.success} />
+        </View>
+      )}
 
       {/* Note Editor */}
       <NoteEditor

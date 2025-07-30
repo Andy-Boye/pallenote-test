@@ -3,12 +3,18 @@ import type { Note, SharedNote, SharingRecord } from "./backendTypes";
 import { apiClient, getCurrentUserId } from "./config";
 import type { ApiResponse } from "./types";
 
+// Extended Note type for mock data that includes additional properties
+interface ExtendedNote extends Note {
+  userId?: string;
+  deletedAt?: string;
+}
+
 // Storage key for user notes
 const USER_NOTES_KEY = 'user_notes';
 const SHARING_HISTORY_KEY = 'sharing_history';
 
 // Helper function to get stored notes
-const getStoredNotes = async (): Promise<Note[]> => {
+const getStoredNotes = async (): Promise<ExtendedNote[]> => {
   try {
     const userId = await getCurrentUserId();
     const key = `${USER_NOTES_KEY}_${userId}`;
@@ -205,7 +211,7 @@ export const getNotes = async (params?: {
         id: '1753757908833', 
         title: 'Assembly', 
         content: '<div>ahashzz,</div>', 
-        date: '7/29/2025', 
+        date: '2025-07-29', 
         notebookId: 'notebook_1753757384833', // Business notebook
         userId: userId,
         createdAt: '2025-07-29T02:58:28.833Z', 
@@ -276,11 +282,11 @@ export const createNote = async (note: Omit<Note, "id" | "createdAt" | "updatedA
     console.error("Create note error:", error)
     // Return mock data if network error
     const userId = await getCurrentUserId() || 'current-user-id';
-    const newNote: Note = {
+    const newNote: ExtendedNote = {
       id: Date.now().toString(),
       title: note.title,
       content: note.content,
-      date: note.date,
+      date: note.date || new Date().toISOString().split('T')[0], // Use YYYY-MM-DD format
       notebookId: note.notebookId || note.noteBookId?.toString() || 'default',
       userId: userId, // Associate with current user
       createdAt: new Date().toISOString(),
@@ -307,7 +313,7 @@ export const createRegistersNote = async (): Promise<Note> => {
       noteBookId: 2,
       title: "Registers1",
       content: "A register in a CPU is a small, high-speed storage location within the processor used for holding data that the CPU is actively using or needs to access quickly. These registers are much faster to access than main memory (RAM), making them crucial for efficient CPU operation.",
-      date: new Date().toLocaleDateString(),
+      date: new Date().toISOString().split('T')[0], // Use YYYY-MM-DD format
       notebookId: '2'
     };
     
@@ -319,11 +325,11 @@ export const createRegistersNote = async (): Promise<Note> => {
     console.error("Create Registers note error:", error);
     // Return mock data if network error
     const userId = await getCurrentUserId() || 'current-user-id';
-    const mockRegistersNote: Note = {
+    const mockRegistersNote: ExtendedNote = {
       id: Date.now().toString(),
       title: "Registers1",
       content: "A register in a CPU is a small, high-speed storage location within the processor used for holding data that the CPU is actively using or needs to access quickly. These registers are much faster to access than main memory (RAM), making them crucial for efficient CPU operation.",
-      date: new Date().toLocaleDateString(),
+      date: new Date().toISOString().split('T')[0], // Use YYYY-MM-DD format
       notebookId: '2',
       userId: userId,
       createdAt: new Date().toISOString(),
@@ -351,7 +357,7 @@ export const createRegistersNoteWithData = async (noteData: {
     const noteWithUser = {
       ...noteData,
       userId: userId,
-      date: new Date().toLocaleDateString(),
+      date: new Date().toISOString().split('T')[0], // Use YYYY-MM-DD format
       notebookId: noteData.noteBookId.toString()
     };
     
@@ -405,7 +411,7 @@ export const updateNote = async (id: string, note: Partial<Note>): Promise<Note>
       id: id,
       title: note.title || '',
       content: note.content || '',
-      date: note.date || new Date().toLocaleDateString(),
+      date: note.date || new Date().toISOString().split('T')[0], // Use YYYY-MM-DD format
       notebookId: note.notebookId || 'default',
       userId: userId,
       createdAt: new Date().toISOString(),
@@ -947,6 +953,42 @@ export const deleteNote = async (id: string): Promise<void> => {
   }
 }
 
+// New function to match the curl command format
+export const deleteNoteWithBody = async (noteId: number): Promise<void> => {
+  console.log('=== DELETE NOTE WITH BODY API CALLED ===');
+  console.log('Note ID:', noteId);
+  
+  try {
+    console.log(`Making API call to: /notes with body { noteId: ${noteId} }`);
+    await apiClient.delete('/notes', {
+      data: { noteId }
+    });
+    console.log(`Successfully deleted note ${noteId} via API`);
+  } catch (error) {
+    console.error("Delete note with body error:", error);
+    console.error("Error details:", {
+      message: error instanceof Error ? error.toString() : 'Unknown error',
+      status: (error as any)?.response?.status,
+      data: (error as any)?.response?.data,
+      url: (error as any)?.config?.url,
+    });
+    
+    // Handle offline scenario by removing note from local storage
+    try {
+      console.log(`Removing note ${noteId} from local storage...`);
+      const existingNotes = await getStoredNotes();
+      const updatedNotes = existingNotes.filter(note => note.id !== noteId.toString());
+      await storeNotes(updatedNotes);
+      console.log(`Deleted note ${noteId} from local storage`);
+    } catch (storageError) {
+      console.error('Error updating stored notes:', storageError);
+    }
+    
+    // Re-throw the error so the calling function can handle it
+    throw error;
+  }
+}
+
 export const searchNotes = async (query: string): Promise<Note[]> => {
   try {
     const response = await apiClient.get<ApiResponse<Note[]>>(`/notes/search?q=${encodeURIComponent(query)}`)
@@ -1112,12 +1154,12 @@ export const bulkDeleteNotes = async (noteIds: string[]): Promise<void> => {
   }
 }
 
-export const bulkUpdateNotes = async (updates: Array<{
+export const bulkUpdateNotes = async (updates: {
   id: string;
   title?: string;
   content?: string;
   notebookId?: string;
-}>): Promise<Note[]> => {
+}[]): Promise<Note[]> => {
   console.log('=== BULK UPDATE NOTES API CALLED ===');
   console.log('Updates:', updates);
   
@@ -1172,7 +1214,7 @@ export const moveNoteToRecycleBin = async (id: string): Promise<void> => {
   try {
     // Use the updateNote function to mark as deleted
     console.log(`Making API call to update note ${id} with deletedAt`);
-    await updateNote(id, { deletedAt: new Date().toISOString() });
+    await updateNote(id, { deletedAt: new Date().toISOString() } as any);
     console.log(`Successfully moved note ${id} to recycle bin via API`);
   } catch (error) {
     console.error("Move note to recycle bin error:", error);

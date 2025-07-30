@@ -1,4 +1,5 @@
 import { useTheme } from '@/contexts/ThemeContext';
+import { stripHtmlTags } from '@/utils/htmlUtils';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
@@ -44,6 +45,9 @@ const RichNoteCard: React.FC<RichNoteCardProps> = ({
     notebookTitle: string;
     date: string;
   } | null>(null);
+
+  // Clean the content by stripping HTML tags
+  const cleanContent = stripHtmlTags(note.content);
 
   const handleEdit = () => {
     // Set the editing note data and open the editor modal
@@ -150,7 +154,7 @@ const RichNoteCard: React.FC<RichNoteCardProps> = ({
         {!isExpanded && (
           <View style={styles.previewContainer}>
             <Text style={[styles.preview, { color: colors.textSecondary }]} className="font-[Inter]">
-              {note.content.length > 100 ? note.content.slice(0, 100) + '...' : note.content}
+              {cleanContent.length > 100 ? cleanContent.slice(0, 100) + '...' : cleanContent}
             </Text>
           </View>
         )}
@@ -160,7 +164,7 @@ const RichNoteCard: React.FC<RichNoteCardProps> = ({
           <View style={styles.expandedContent}>
             <View style={styles.contentContainer}>
               <Text style={[styles.fullContent, { color: colors.text }]} className="font-[Inter]">
-                {note.content}
+                {cleanContent}
               </Text>
             </View>
             
