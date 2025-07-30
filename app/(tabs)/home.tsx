@@ -1,4 +1,4 @@
-import { createRegisters1Note, getNotes } from "@/api/notesApi";
+import { createRegisters1Note, getNotes, shareNote } from "@/api/notesApi";
 import type { Note } from "@/api/types";
 import FloatingActionButton from '@/components/FloatingActionButton';
 import RichNoteCard from '@/components/notes/RichNoteCard';
@@ -493,11 +493,7 @@ const HomeScreen = () => {
                     console.log('Deleting note:', noteId);
                     // You can implement API call here to delete the note
                   }}
-                  onShare={(note) => {
-                    // Handle note sharing
-                    console.log('Sharing note:', note);
-                    // You can implement sharing functionality here
-                  }}
+
                 />
               ))
             ) : (

@@ -10,6 +10,7 @@ import DarkGradientBackground from '../../../components/DarkGradientBackground';
 import FAB from "../../../components/FAB";
 import RichTextEditor from "../../../components/RichTextEditor";
 import NoteEditor from "../../../components/notes/NoteEditor";
+import ShareNoteModal from "../../../components/ShareNoteModal";
 
 
 const NoteDetailScreen = () => {
@@ -34,6 +35,7 @@ const NoteDetailScreen = () => {
   });
   const pellEditorRef = useRef<any>(null);
   const [editorVisible, setEditorVisible] = useState(false);
+  const [shareModalVisible, setShareModalVisible] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -127,7 +129,11 @@ const NoteDetailScreen = () => {
   };
 
   const handleShare = () => {
-    Alert.alert('Share', 'Share functionality coming soon!');
+    setShareModalVisible(true);
+  };
+
+  const closeShareModal = () => {
+    setShareModalVisible(false);
   };
 
   const handleBackNavigation = () => {
@@ -444,6 +450,13 @@ const NoteDetailScreen = () => {
           notebookTitle: selectedNotebook?.title || 'My Notebook',
           date: note.date,
         } : null}
+      />
+
+      {/* Share Note Modal */}
+      <ShareNoteModal
+        visible={shareModalVisible}
+        onClose={closeShareModal}
+        note={note}
       />
     </DarkGradientBackground>
   );

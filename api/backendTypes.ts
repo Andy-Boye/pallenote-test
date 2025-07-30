@@ -37,17 +37,42 @@ export interface Note {
   content: string;
   notebookId: string;
   date: string;
+  userId?: string; // User who owns the note
   createdAt: string; // date only string
   updatedAt?: string;
+  deletedAt?: string; // when note was moved to recycle bin
 }
 
 // SharedNote
-export type AccessType = "viewer" | "editor";
+export type AccessType = "Viewer" | "Editor";
 export interface SharedNote {
-  recipientId: string;
-  notebookId: string;
+  id: string;
+  noteId: string;
+  noteTitle: string;
+  ownerId: string;
+  ownerEmail: string;
+  recipientEmail: string;
   accessType: AccessType;
-  allowedNotes: string[]; // array of note ids
+  shareUrl: string;
+  shareId: string;
+  sharedAt: string;
+  isActive: boolean;
+}
+
+// Sharing History Record
+export interface SharingRecord {
+  id: string;
+  noteId: string;
+  noteTitle: string;
+  senderId: string;
+  senderEmail: string;
+  recipientEmail: string;
+  accessType: AccessType;
+  shareUrl: string;
+  shareId: string;
+  sharedAt: string;
+  status: 'sent' | 'received';
+  isActive: boolean;
 }
 
 // NoteReference

@@ -8,10 +8,11 @@ import NoteCard from './NoteCard';
 interface NotesListProps {
   notes: Note[];
   onNotePress: (noteId: string) => void;
+  onShare?: (note: Note) => void;
   searchText: string;
 }
 
-const NotesList: React.FC<NotesListProps> = ({ notes, onNotePress, searchText }) => {
+const NotesList: React.FC<NotesListProps> = ({ notes, onNotePress, onShare, searchText }) => {
   const { colors } = useTheme();
 
   // Filter notes by search text
@@ -21,7 +22,7 @@ const NotesList: React.FC<NotesListProps> = ({ notes, onNotePress, searchText })
   );
 
   const renderNoteCard = ({ item }: { item: Note }) => (
-    <NoteCard note={item} onPress={onNotePress} />
+    <NoteCard note={item} onPress={onNotePress} onShare={onShare} />
   );
 
   const renderEmptyComponent = () => (

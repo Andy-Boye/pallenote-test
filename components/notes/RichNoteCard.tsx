@@ -8,6 +8,7 @@ import {
     View
 } from 'react-native';
 import NoteEditor from './NoteEditor';
+import ShareNoteModal from '../ShareNoteModal';
 
 interface RichNoteCardProps {
   note: {
@@ -33,6 +34,7 @@ const RichNoteCard: React.FC<RichNoteCardProps> = ({
   const { colors } = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
   const [editorVisible, setEditorVisible] = useState(false);
+  const [shareModalVisible, setShareModalVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingNote, setEditingNote] = useState<{
     id: string;
@@ -105,9 +107,11 @@ const RichNoteCard: React.FC<RichNoteCardProps> = ({
   };
 
   const handleShare = () => {
-    if (onShare) {
-      onShare(note);
-    }
+    setShareModalVisible(true);
+  };
+
+  const closeShareModal = () => {
+    setShareModalVisible(false);
   };
 
   return (
@@ -196,6 +200,13 @@ const RichNoteCard: React.FC<RichNoteCardProps> = ({
         onNotebookChange={handleNotebookChange}
         saving={saving}
         editingNote={editingNote}
+      />
+
+      {/* Share Note Modal */}
+      <ShareNoteModal
+        visible={shareModalVisible}
+        onClose={closeShareModal}
+        note={note}
       />
     </>
   );
