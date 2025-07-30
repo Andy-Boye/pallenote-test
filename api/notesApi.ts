@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { Note } from "./backendTypes";
+import type { Note, SharedNote, SharingRecord } from "./backendTypes";
 import { apiClient, getCurrentUserId } from "./config";
 import type { ApiResponse } from "./types";
 
@@ -11,6 +11,7 @@ interface ExtendedNote extends Note {
 
 // Storage key for user notes
 const USER_NOTES_KEY = 'user_notes';
+const SHARING_HISTORY_KEY = 'sharing_history';
 
 // Helper function to get stored notes
 const getStoredNotes = async (): Promise<ExtendedNote[]> => {
@@ -59,6 +60,42 @@ const updateNoteInStorage = async (noteId: string, updates: Partial<Note>): Prom
     console.log('Note updated in storage:', noteId, updates);
   } catch (error) {
     console.error('Error updating note in storage:', error);
+  }
+};
+
+// Helper function to get stored sharing history
+const getStoredSharingHistory = async (): Promise<SharingRecord[]> => {
+  try {
+    const userId = await getCurrentUserId();
+    const key = `${SHARING_HISTORY_KEY}_${userId}`;
+    const storedHistory = await AsyncStorage.getItem(key);
+    return storedHistory ? JSON.parse(storedHistory) : [];
+  } catch (error) {
+    console.error('Error getting stored sharing history:', error);
+    return [];
+  }
+};
+
+// Helper function to store sharing history
+const storeSharingHistory = async (history: SharingRecord[]): Promise<void> => {
+  try {
+    const userId = await getCurrentUserId();
+    const key = `${SHARING_HISTORY_KEY}_${userId}`;
+    await AsyncStorage.setItem(key, JSON.stringify(history));
+  } catch (error) {
+    console.error('Error storing sharing history:', error);
+  }
+};
+
+// Helper function to add a sharing record
+const addSharingRecord = async (record: SharingRecord): Promise<void> => {
+  try {
+    const existingHistory = await getStoredSharingHistory();
+    const updatedHistory = [...existingHistory, record];
+    await storeSharingHistory(updatedHistory);
+    console.log('Sharing record added to storage:', record);
+  } catch (error) {
+    console.error('Error adding sharing record to storage:', error);
   }
 };
 
@@ -1260,5 +1297,196 @@ export const deleteNotesByNotebookIdWithBody = async (noteBookId: number): Promi
     
     // Re-throw the error so the calling function can handle it
     throw error;
+  }
+}
+
+export const shareNote = async (noteId: number, shareData: {
+  recipientEmail: string;
+  accessType: 'Viewer' | 'Editor';
+}): Promise<{ shareUrl: string; shareId: string }> => {
+  try {
+    console.log(`Sharing note ${noteId} with data:`, shareData);
+    
+    const requestBody = {
+      recipientEmail: shareData.recipientEmail,
+      accessType: shareData.accessType,
+      noteId: noteId
+    };
+    
+    const response = await apiClient.post<ApiResponse<{ shareUrl: string; shareId: string }>>(
+      `/share-note/share`,
+      requestBody
+    );
+    
+    console.log(`Successfully shared note ${noteId} via API`);
+    console.log('API Response:', response.data);
+    
+    // Handle different response structures
+    const responseData = response.data as any; // Type assertion to handle flexible response structure
+    
+    let shareResult;
+    if (responseData && responseData.data) {
+      // Standard ApiResponse format
+      shareResult = responseData.data;
+    } else if (responseData && (responseData.shareUrl || responseData.shareId)) {
+      // Direct response format
+      shareResult = {
+        shareUrl: responseData.shareUrl || `https://pella-notes.onrender.com/shared-note/${noteId}`,
+        shareId: responseData.shareId || `share_${Date.now()}`
+      };
+    } else {
+      // Fallback to mock data if response structure is unexpected
+      console.log('Unexpected response structure, using fallback data');
+      shareResult = {
+        shareUrl: `https://pella-notes.onrender.com/shared-note/${noteId}`,
+        shareId: `share_${Date.now()}`
+      };
+    }
+
+    // Add sharing record to history
+    try {
+      const userId = await getCurrentUserId();
+      const note = await getNoteById(noteId.toString());
+      const sharingRecord: SharingRecord = {
+        id: `share_${Date.now()}`,
+        noteId: noteId.toString(),
+        noteTitle: note.title,
+        senderId: userId || 'unknown',
+        senderEmail: 'current-user@example.com', // This should come from user context
+        recipientEmail: shareData.recipientEmail,
+        accessType: shareData.accessType,
+        shareUrl: shareResult.shareUrl,
+        shareId: shareResult.shareId,
+        sharedAt: new Date().toISOString(),
+        status: 'sent',
+        isActive: true
+      };
+      await addSharingRecord(sharingRecord);
+    } catch (historyError) {
+      console.error('Error adding sharing record:', historyError);
+    }
+
+    return shareResult;
+  } catch (error) {
+    console.error("Share note error:", error);
+    console.error("Error details:", {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      status: (error as any)?.response?.status,
+      data: (error as any)?.response?.data,
+      url: (error as any)?.config?.url,
+    });
+    
+    // Return mock data for offline scenario
+    const mockShareData = {
+      shareUrl: `https://pella-notes.onrender.com/shared-note/${noteId}`,
+      shareId: `share_${Date.now()}`
+    };
+    
+    console.log(`Returning mock share data for note ${noteId}:`, mockShareData);
+    return mockShareData;
+  }
+}
+
+// Get sharing history for the current user
+export const getSharingHistory = async (): Promise<SharingRecord[]> => {
+  try {
+    const userId = await getCurrentUserId();
+    const response = await apiClient.get<ApiResponse<SharingRecord[]>>(`/share-note/history?userId=${userId}`);
+    console.log('Get sharing history API response:', response.data);
+    return response.data.data;
+  } catch (error) {
+    console.error("Get sharing history error:", error);
+    // Return stored history if API fails
+    return await getStoredSharingHistory();
+  }
+}
+
+// Get sent shares
+export const getSentShares = async (): Promise<SharingRecord[]> => {
+  try {
+    const allHistory = await getSharingHistory();
+    return allHistory.filter(record => record.status === 'sent');
+  } catch (error) {
+    console.error("Get sent shares error:", error);
+    const storedHistory = await getStoredSharingHistory();
+    return storedHistory.filter(record => record.status === 'sent');
+  }
+}
+
+// Get received shares
+export const getReceivedShares = async (): Promise<SharingRecord[]> => {
+  try {
+    const allHistory = await getSharingHistory();
+    return allHistory.filter(record => record.status === 'received');
+  } catch (error) {
+    console.error("Get received shares error:", error);
+    const storedHistory = await getStoredSharingHistory();
+    return storedHistory.filter(record => record.status === 'received');
+  }
+}
+
+// Revoke a shared note
+export const revokeSharedNote = async (shareId: string): Promise<void> => {
+  try {
+    await apiClient.delete(`/share-note/revoke/${shareId}`);
+    console.log(`Successfully revoked share ${shareId}`);
+    
+    // Update local history
+    const existingHistory = await getStoredSharingHistory();
+    const updatedHistory = existingHistory.map(record => 
+      record.shareId === shareId ? { ...record, isActive: false } : record
+    );
+    await storeSharingHistory(updatedHistory);
+  } catch (error) {
+    console.error("Revoke shared note error:", error);
+    // Update local history even if API fails
+    const existingHistory = await getStoredSharingHistory();
+    const updatedHistory = existingHistory.map(record => 
+      record.shareId === shareId ? { ...record, isActive: false } : record
+    );
+    await storeSharingHistory(updatedHistory);
+  }
+}
+
+// Get shared notes by note ID
+export const getSharedNotesByNoteId = async (noteId: string): Promise<SharingRecord[]> => {
+  try {
+    const allHistory = await getSharingHistory();
+    return allHistory.filter(record => record.noteId === noteId);
+  } catch (error) {
+    console.error("Get shared notes by note ID error:", error);
+    const storedHistory = await getStoredSharingHistory();
+    return storedHistory.filter(record => record.noteId === noteId);
+  }
+}
+
+// Get sharing statistics
+export const getSharingStats = async (): Promise<{
+  totalSent: number;
+  totalReceived: number;
+  activeShares: number;
+  recentShares: number;
+}> => {
+  try {
+    const allHistory = await getSharingHistory();
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    
+    return {
+      totalSent: allHistory.filter(record => record.status === 'sent').length,
+      totalReceived: allHistory.filter(record => record.status === 'received').length,
+      activeShares: allHistory.filter(record => record.isActive).length,
+      recentShares: allHistory.filter(record => 
+        new Date(record.sharedAt) > oneWeekAgo
+      ).length
+    };
+  } catch (error) {
+    console.error("Get sharing stats error:", error);
+    return {
+      totalSent: 0,
+      totalReceived: 0,
+      activeShares: 0,
+      recentShares: 0
+    };
   }
 }

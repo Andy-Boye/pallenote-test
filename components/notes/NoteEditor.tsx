@@ -19,7 +19,7 @@ import {
     View
 } from 'react-native';
 import { RichToolbar, actions } from 'react-native-pell-rich-editor';
-
+import ShareNoteModal from '../ShareNoteModal';
 
 
 interface NoteEditorProps {
@@ -56,16 +56,18 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
   editingNote = null
 }) => {
   const { colors } = useTheme();
+  const [noteTitle, setNoteTitle] = useState('');
+  const [noteContent, setNoteContent] = useState('');
   const [notebooks, setNotebooks] = useState<Notebook[]>([]);
   const [selectedNotebook, setSelectedNotebook] = useState<Notebook | null>(null);
   const [notebookDropdownVisible, setNotebookDropdownVisible] = useState(false);
-  const [noteTitle, setNoteTitle] = useState("");
-  const [noteContent, setNoteContent] = useState("");
-  const [showInsertPanel, setShowInsertPanel] = useState(false);
-  const [showFormatPanel, setShowFormatPanel] = useState(false);
-  const [editorFocused, setEditorFocused] = useState(false);
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [showSearchBar, setShowSearchBar] = useState(false);
+  const [searchText, setSearchText] = useState('');
+  const [searchResults, setSearchResults] = useState<number[]>([]);
+  const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
+  const [shareModalVisible, setShareModalVisible] = useState(false);
+  
   const pellEditorRef = useRef<any>(null);
   const [formatState, setFormatState] = useState({
     bold: false,
@@ -75,11 +77,11 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     alignment: 'left' as 'left' | 'center' | 'right',
   });
   const [showFontFamilyPicker, setShowFontFamilyPicker] = useState(false);
-  const [searchText, setSearchText] = useState("");
-  const [showSearchBar, setShowSearchBar] = useState(false);
-  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
-  const [searchResults, setSearchResults] = useState<number[]>([]);
-  const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
+  const [showInsertPanel, setShowInsertPanel] = useState(false);
+  const [showFormatPanel, setShowFormatPanel] = useState(false);
+  const [editorFocused, setEditorFocused] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   // Keyboard listeners
   useEffect(() => {
@@ -320,6 +322,14 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     );
   };
 
+  const handleShare = () => {
+    setShareModalVisible(true);
+  };
+
+  const closeShareModal = () => {
+    setShareModalVisible(false);
+  };
+
   return (
     <Modal
       visible={visible}
@@ -380,8 +390,8 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
               <Pressable hitSlop={10} style={styles.topBarButton}>
                 <MaterialCommunityIcons name="redo-variant" size={24} color={colors.textSecondary} />
               </Pressable>
-              <Pressable hitSlop={10} style={styles.topBarButton}>
-                <Feather name="share" size={22} color={colors.textSecondary} />
+              <Pressable onPress={handleShare} hitSlop={10} style={styles.topBarButton}>
+                <Ionicons name="share-outline" size={22} color={colors.primary} />
               </Pressable>
               <Pressable onPress={handleSave} hitSlop={10} style={styles.topBarButton} disabled={saving}>
                 {saving ? (
@@ -620,6 +630,17 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
           </View>
         </View>
       </SafeAreaView>
+
+      {/* Share Note Modal */}
+      <ShareNoteModal
+        visible={shareModalVisible}
+        onClose={closeShareModal}
+        note={editingNote ? {
+          id: editingNote.id,
+          title: editingNote.title,
+          content: editingNote.content,
+        } : null}
+      />
     </Modal>
   );
 };

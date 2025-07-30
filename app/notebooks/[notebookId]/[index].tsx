@@ -1,7 +1,7 @@
 "use client";
 
 import { getNotebookById } from "@/api/notebooksApi";
-import { createNote, getNotes, updateNote } from "@/api/notesApi";
+import { createNote, getNotes, updateNote, shareNote } from "@/api/notesApi";
 import type { Note, Notebook } from "@/api/types";
 import FAB from "@/components/FAB";
 import {
@@ -183,6 +183,27 @@ export default function NotebookDetailScreen() {
     }
   };
 
+  const handleShareNote = async (note: Note) => {
+    try {
+      // For now, using a default recipient. In a real app, you'd prompt the user
+      const recipientEmail = "kendrickarthur9@gmail.com";
+      const accessType = "Viewer";
+      
+      const result = await shareNote(Number(note.id), {
+        recipientEmail,
+        accessType
+      });
+      
+      Alert.alert(
+        "Share Success", 
+        `Note shared successfully!\n\nShare Link: ${result.shareUrl}\n\nShare ID: ${result.shareId}`
+      );
+    } catch (error) {
+      console.error('Error sharing note:', error);
+      Alert.alert("Error", "Failed to share note. Please try again.");
+    }
+  };
+
   const handleNotebookChange = async (noteId: string, newNotebookId: string, newNotebookTitle: string) => {
     console.log('=== NOTEBOOK CHANGE HANDLER ===');
     console.log('Note ID:', noteId);
@@ -306,6 +327,7 @@ export default function NotebookDetailScreen() {
       <NotesList 
         notes={notes} 
         onNotePress={openNote} 
+        onShare={handleShareNote}
         searchText={searchText} 
       />
       

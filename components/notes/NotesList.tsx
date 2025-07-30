@@ -8,6 +8,7 @@ import { SortOption } from './SortModal';
 interface NotesListProps {
   notes: Note[];
   onNotePress: (noteId: string) => void;
+  onShare?: (note: Note) => void;
   searchText: string;
   sortOption?: SortOption;
   selectionMode?: boolean;
@@ -21,7 +22,7 @@ interface NotesListProps {
 const NotesList: React.FC<NotesListProps> = ({ 
   notes, 
   onNotePress, 
-  searchText, 
+  onShare, searchText, 
   sortOption = 'dateCreated',
   selectionMode = false,
   selectedNotes = [],
@@ -76,7 +77,7 @@ const NotesList: React.FC<NotesListProps> = ({
   const renderNoteCard = ({ item }: { item: Note }) => (
     <NoteCard 
       note={item} 
-      onPress={onNotePress}
+      onPress={onNotePress} onShare={onShare}
       selectionMode={selectionMode}
       isSelected={selectedNotes.includes(item.id)}
       onSelect={onNoteSelect}

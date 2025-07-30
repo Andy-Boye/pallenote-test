@@ -1,6 +1,6 @@
 "use client";
 
-import { createNote, deleteNote, getNotes, updateNote } from "@/api/notesApi";
+import { createNote, deleteNote, getNotes, updateNote, shareNote } from "@/api/notesApi";
 import type { Note } from "@/api/types";
 import FAB from "@/components/FAB";
 import {
@@ -208,6 +208,12 @@ const NotesScreen = () => {
     );
   };
 
+  const handleShareNote = async (note: Note) => {
+    // The share functionality is now handled by the ShareNoteModal component
+    // This function is kept for backward compatibility but is no longer used
+    console.log('Share note called for:', note.title);
+  };
+
   const handleNotebookChange = async (noteId: string, newNotebookId: string, newNotebookTitle: string) => {
     console.log('=== NOTEBOOK CHANGE HANDLER IN NOTES SCREEN ===');
     console.log('Note ID:', noteId);
@@ -273,6 +279,7 @@ const NotesScreen = () => {
              <NotesList 
          notes={notes} 
          onNotePress={openNote} 
+        onShare={handleShareNote}
          searchText={searchText} 
          sortOption={currentSort}
          selectionMode={selectionMode}
